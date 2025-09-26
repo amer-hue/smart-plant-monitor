@@ -1,50 +1,63 @@
-# Welcome to your Expo app 👋
+# 🌱 Smart Plant Monitor App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native + Expo app for monitoring your plants with Bluetooth sensors.  
+Includes plant management, statistics, and settings with temperature unit toggle.  
 
-## Get started
+---
 
-1. Install dependencies
+## 📸 Features
+- Sign in / Sign up flow
+- Dashboard with featured plant
+- My Plants list (add, view, and track plants)
+- Statistics per plant (temperature, moisture, humidity, light)
+- Settings page (toggle °C/°F, notifications, dark mode placeholder)
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## 📂 Project Structure
+src/
+assets/              # Local images (e.g. banana.png)
+components/          # Reusable components
+navigation/          # Tab + stack navigation setup
+screens/             # App screens (Dashboard, MyPlants, Statistics, etc.)
+state/               # Context + reducer for plants
+types/               # TypeScript types
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## ▶️ How to Run
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+### 1. Clone the repo
 ```bash
-npm run reset-project
-```
+git clone https://github.com/YOUR_USERNAME/smart-plant-monitor.git
+cd smart-plant-monitor
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Install dependencies
+npm install
 
-## Learn more
+3. Start Metro bundler
+npx expo start
 
-To learn more about developing your project with Expo, look at the following resources:
+4. Run on iOS :
+npx expo run:ios
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+⚙️ Requirements
+    •    Node.js ≥ 18
+    •    Expo CLI
+    •    iOS Simulator (Xcode) or Android Emulator (Android Studio)
 
-## Join the community
+⸻
 
-Join our community of developers creating universal apps.
+🌿 Example Credentials
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+For demo purposes, sign in with any email + password.
+(No backend auth yet — state is stored locally with AsyncStorage.)
+
+⸻
+
+👨‍💻 Contributing
+
+Pull requests are welcome. For major changes, open an issue first to discuss what you’d like to change.
+
+
+
