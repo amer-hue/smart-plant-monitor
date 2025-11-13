@@ -1,96 +1,135 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { RouteProp, useRoute } from '@react-navigation/native';
-import { RootStackParamList } from '../types';
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import React from "react";
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { LineChart } from "react-native-chart-kit";
 
-type StatisticsRouteProp = RouteProp<RootStackParamList, 'Statistics'>;
+import { usePlantStore } from "../state/context";
+import { RootStackParamList } from "../types";
+
+type StatsRouteProp = RouteProp<RootStackParamList, "Statistics">;
+type NavProp = StackNavigationProp<RootStackParamList, "Statistics">;
 
 export default function StatisticsScreen() {
-  const route = useRoute<StatisticsRouteProp>();
-    const plant = route.params?.plant;
-    
-    if (!plant) {
-      return (
-        <View style={styles.container}>
-          <Text style={styles.title}>No plant selected</Text>
-        </View>
-      );
-    }
+  const route = useRoute<StatsRouteProp>();
+  const navigation = useNavigation<NavProp>();
+  const { state } = usePlantStore();
+
+  const plantId = route.params?.plantId;
+  const plant = state.plants.find((p) => p.id === plantId);
+
+  if (!plant) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Plant Not Found</Text>
+      </View>
+    );
+  }
+
+  // Sample fake chart data (later replaced with Firestore)
+  const history = {
+    labels: ["M", "T", "W", "T", "F"],
+    temp: [22, 23, 20, 24, 26],
+    moisture: [40, 42, 45, 38, 50],
+    light: [400, 500, 650, 550, 700],
+  };
 
   return (
     <View style={styles.container}>
+      {/* 🔙 Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backText}>← Back</Text>
+      </TouchableOpacity>
+
       <Text style={styles.title}>Statistics for {plant.name}</Text>
 
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <Text style={styles.label}>🌡 Temp:</Text>
-          <Text style={styles.value}>
-            {plant.last?.tempC ?? '--'}°C
-          </Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>💧 Moisture:</Text>
-          <Text style={styles.value}>
-            {plant.last?.moisture ?? '--'}%
-          </Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>💦 Humidity:</Text>
-          <Text style={styles.value}>
-            {plant.last?.humidity ?? '--'}%
-          </Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>☀️ Light:</Text>
-          <Text style={styles.value}>
-            {plant.last?.light ?? '--'} lux
-          </Text>
-        </View>
-      </View>
+      {/* 🌡 Temperature Chart */}
+      <Text style={styles.chartLabel}>🌡 Temperature (°C)</Text>
+      <LineChart
+        data={{
+          labels: history.labels,
+          datasets: [{ data: history.temp }],
+        }}
+        width={Dimensions.get("window").width - 40}
+        height={200}
+        chartConfig={chartConfig}
+        style={styles.chart}
+        bezier
+      />
+
+      {/* 💧 Moisture Chart */}
+      <Text style={styles.chartLabel}>💧 Moisture (%)</Text>
+      <LineChart
+        data={{
+          labels: history.labels,
+          datasets: [{ data: history.moisture }],
+        }}
+        width={Dimensions.get("window").width - 40}
+        height={200}
+        chartConfig={chartConfig}
+        style={styles.chart}
+        bezier
+      />
+
+      {/* ☀️ Light Chart */}
+      <Text style={styles.chartLabel}>☀️ Light (lux)</Text>
+      <LineChart
+        data={{
+          labels: history.labels,
+          datasets: [{ data: history.light }],
+        }}
+        width={Dimensions.get("window").width - 40}
+        height={200}
+        chartConfig={chartConfig}
+        style={styles.chart}
+        bezier
+      />
     </View>
   );
 }
 
-
+const chartConfig = {
+  backgroundColor: "#1E1E1E",
+  backgroundGradientFrom: "#1E1E1E",
+  backgroundGradientTo: "#1E1E1E",
+  decimalPlaces: 0,
+  color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
+  labelColor: () => "#bbb",
+  propsForDots: {
+    r: "4",
+    strokeWidth: "2",
+    stroke: "#4CAF50",
+  },
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: "#121212",
     padding: 20,
-    alignItems: 'center', // ✅ center content horizontally
+  },
+  backButton: {
+    marginBottom: 10,
+  },
+  backText: {
+    color: "#888",
+    fontSize: 16,
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: "700",
+    color: "#fff",
+    textAlign: "center",
     marginBottom: 20,
-    textAlign: 'center',
   },
-  card: {
-    width: '100%',
-    backgroundColor: '#1E1E1E',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between', // ✅ spreads label and value apart
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#333',
-  },
-  label: {
+  chartLabel: {
+    color: "#fff",
     fontSize: 16,
-    color: '#bbb',
+    marginBottom: 8,
+    marginTop: 10,
   },
-  value: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+  chart: {
+    borderRadius: 10,
+    marginBottom: 25,
   },
 });

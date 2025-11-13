@@ -1,7 +1,7 @@
-import React, { createContext, useReducer, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Plant, Reading } from '../types';
+import React, { createContext, useContext, useEffect, useReducer } from 'react';
 import { BLEClient } from '../ble/client';
+import { Plant, Reading } from '../types';
 
 type State = {
   plants: Plant[];

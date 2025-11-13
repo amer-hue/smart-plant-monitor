@@ -1,169 +1,139 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../types';
-import { usePlantStore } from '../state/context';
-import { colors } from '../theme/colors';
-import { formatTemperature, getLightLevel } from '../utils/helpers';
-import EmptyState from '../components/EmptyState';
-import { BLEClient } from '../ble/client';
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import React from "react";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { usePlantStore } from "../state/context";
+import { RootStackParamList } from "../types";
 
-type PlantDetailScreenRouteProp = RouteProp<RootStackParamList, 'PlantDetail'>;
-type PlantDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'PlantDetail'>;
+type DetailRouteProp = RouteProp<RootStackParamList, "PlantDetail">;
+type NavProp = StackNavigationProp<RootStackParamList, "PlantDetail">;
 
-const PlantDetailScreen = () => {
-  const route = useRoute<PlantDetailScreenRouteProp>();
-  const navigation = useNavigation<PlantDetailScreenNavigationProp>();
-  const { plantId } = route.params;
-  const { state: { plants, isFahrenheit }, refreshReading, unpairDevice } = usePlantStore();
-  const plant = plants.find(p => p.id === plantId);
+export default function PlantDetailScreen() {
+  const route = useRoute<DetailRouteProp>();
+  const navigation = useNavigation<NavProp>();
+  const { state, dispatch } = usePlantStore();
 
-  useEffect(() => {
-    // Refresh reading on component load for up-to-date data
-    if (plant && plant.deviceId) {
-      refreshReading(plant.id);
-    }
-  }, [plant, refreshReading]);
+  const plant = state.plants.find((p) => p.id === route.params?.plantId);
 
   if (!plant) {
-    return <EmptyState message="Plant not found." />;
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Plant Not Found</Text>
+      </View>
+    );
   }
 
-  const handleRefresh = async () => {
-    if (plant.deviceId) {
-      await refreshReading(plant.id);
-    } else {
-      // In a real app, this would show an error message
-      alert('Plant not paired with a device!');
-    }
-  };
-
-  const handleUnpair = () => {
-    unpairDevice(plant.id);
-    navigation.goBack();
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Plant",
+      `Delete "${plant.name}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            dispatch({ type: "REMOVE_PLANT", payload: plant.id });
+            navigation.navigate("MyPlants");
+          },
+        },
+      ]
+    );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Text style={styles.title}>{plant.name}</Text>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Device Status</Text>
-        <Text style={styles.infoText}>
-          {plant.deviceId ? `Paired to: ${plant.deviceId}` : 'Not Paired'}
+
+      <View style={styles.card}>
+        <Text style={styles.row}>
+          🌡 Temperature: {plant.last?.tempC ?? "--"}°C
         </Text>
-      </View>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Latest Reading</Text>
-        {plant.last ? (
-          <>
-            <View style={styles.readingItem}>
-              <Text style={styles.label}>Moisture:</Text>
-              <Text style={styles.value}>{`${plant.last.moisture}%`}</Text>
-            </View>
-            <View style={styles.readingItem}>
-              <Text style={styles.label}>Temperature:</Text>
-              <Text style={styles.value}>
-                {formatTemperature(plant.last.tempC, isFahrenheit)}
-              </Text>
-            </View>
-            <View style={styles.readingItem}>
-              <Text style={styles.label}>Light:</Text>
-              <Text style={styles.value}>{getLightLevel(plant.last.light)}</Text>
-            </View>
-            <Text style={styles.timestamp}>
-              Last updated: {new Date(plant.last.ts).toLocaleString()}
-            </Text>
-          </>
-        ) : (
-          <Text style={styles.infoText}>No readings available.</Text>
-        )}
+        <Text style={styles.row}>
+          💧 Moisture: {plant.last?.moisture ?? "--"}%
+        </Text>
+        <Text style={styles.row}>
+          ☀️ Light: {plant.last?.light ?? "--"} lux
+        </Text>
       </View>
 
       <TouchableOpacity
-        style={styles.refreshButton}
-        onPress={handleRefresh}
-        disabled={!plant.deviceId}
+        style={styles.button}
+        onPress={() =>
+          navigation.navigate("Statistics", { plantId: plant.id })
+        }
       >
-        <Text style={styles.buttonText}>Refresh Reading</Text>
+        <Text style={styles.buttonText}>View Statistics</Text>
       </TouchableOpacity>
-      {plant.deviceId && (
-        <TouchableOpacity style={styles.unpairButton} onPress={handleUnpair}>
-          <Text style={styles.buttonText}>Unpair Device</Text>
-        </TouchableOpacity>
-      )}
-    </SafeAreaView>
+
+      <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+        <Text style={styles.deleteText}>Delete Plant</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Text style={styles.backText}>← Back</Text>
+      </TouchableOpacity>
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-    paddingHorizontal: 16,
+    backgroundColor: "#121212",
+    padding: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.primary,
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#fff",
     marginBottom: 20,
-    marginTop: 16,
+    textAlign: "center",
   },
-  section: {
-    backgroundColor: colors.surface,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
+  card: {
+    backgroundColor: "#1E1E1E",
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 25,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  infoText: {
-    color: colors.textFaded,
-    fontSize: 14,
-  },
-  readingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  label: {
-    color: colors.textFaded,
-    fontSize: 14,
-  },
-  value: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  timestamp: {
-    color: colors.textFaded,
-    fontSize: 12,
-    marginTop: 8,
-    textAlign: 'right',
-  },
-  refreshButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+  row: {
+    color: "#fff",
+    fontSize: 16,
     marginBottom: 10,
   },
-  unpairButton: {
-    backgroundColor: colors.red,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+  button: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginBottom: 15,
   },
   buttonText: {
-    color: colors.text,
-    fontWeight: 'bold',
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  deleteButton: {
+    backgroundColor: "#8b0000",
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  deleteText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  backButton: {
+    marginTop: 25,
+    alignItems: "center",
+  },
+  backText: {
+    color: "#888",
     fontSize: 16,
   },
 });
-
-export default PlantDetailScreen;

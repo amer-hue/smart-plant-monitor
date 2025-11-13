@@ -1,17 +1,8 @@
-import { Plant } from './plantTypes';
-
 export type Reading = {
-moisture: number;
-tempC: number;
-light: number;
-ts: number;
-};
-
-export type Plant = {
-id: string;
-name: string;
-deviceId?: string;
-last?: Reading;
+  moisture: number;
+  tempC: number;
+  light: number;
+  ts: number;
 };
 
 export type Plant = {
@@ -20,24 +11,29 @@ export type Plant = {
   type?: string;
   location?: string;
   deviceId?: string;
+
   last?: {
-    temperature?: number;
+    tempC?: number;
     moisture?: number;
-    humidity?: number;
     light?: number;
   };
 };
 
+
 export type RootStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
+
   MainTabs: undefined;
+
   Dashboard: undefined;
-  Scan: undefined;
-  PlantDetail: { plantId: string };
-  AddPlant: undefined;
   MyPlants: undefined;
-  Statistics: { plant: Plant }; 
+  Scan: undefined;
   Settings: undefined;
+
+  AddPlant: undefined;
+  PlantDetail: { plantId: string };
+  Statistics: { plantId: string };
 };
+
 

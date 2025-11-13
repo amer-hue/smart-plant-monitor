@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../types';
-import { usePlantStore } from '../state/context';
-import EmptyState from '../components/EmptyState';
+import * as Crypto from 'expo-crypto'; // ✅ FIXED – use Expo crypto instead of uuid
+import React, { useEffect, useState } from 'react';
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BLEClient } from '../ble/client';
+import EmptyState from '../components/EmptyState';
+import { usePlantStore } from '../state/context';
 import { colors } from '../theme/colors';
-import { v4 as uuidv4 } from 'uuid';
+import { RootStackParamList } from '../types';
 
 const ScanScreen = () => {
   const [devices, setDevices] = useState<{ id: string; name: string; rssi: number }[]>([]);
   const [isScanning, setIsScanning] = useState(false);
+
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { state: { plants }, dispatch, pairDevice } = usePlantStore();
 
@@ -24,7 +25,7 @@ const ScanScreen = () => {
   const startScan = async () => {
     setDevices([]);
     setIsScanning(true);
-    // In a real app, this would use the real BLE library and permissions checks
+
     try {
       BLEClient.startScan(device => {
         setDevices(prev => {
@@ -34,13 +35,15 @@ const ScanScreen = () => {
           return prev;
         });
       });
+
       setTimeout(() => {
         setIsScanning(false);
         BLEClient.stopScan();
         if (devices.length === 0) {
           Alert.alert("No devices found", "Check if your sensor is on and try again.");
         }
-      }, 5000); // Stop scan after 5 seconds
+      }, 5000);
+
     } catch (e) {
       console.error('BLE scan failed', e);
       setIsScanning(false);
@@ -52,6 +55,7 @@ const ScanScreen = () => {
       "Pair with Plant",
       `Choose a plant to associate with ${device.name}.`,
       [
+        // List all existing plants
         ...plants.map(plant => ({
           text: plant.name,
           onPress: () => {
@@ -59,15 +63,21 @@ const ScanScreen = () => {
             navigation.goBack();
           },
         })),
+
+        // Option for creating a new plant
         {
           text: 'Create New Plant',
           onPress: () => {
-            const newPlantId = uuidv4();
-            dispatch({ type: 'ADD_PLANT', payload: { id: newPlantId, name: `New Plant ${plants.length + 1}` } });
+            const newPlantId = Crypto.randomUUID();   // ✅ FIXED
+            dispatch({
+              type: 'ADD_PLANT',
+              payload: { id: newPlantId, name: `New Plant ${plants.length + 1}` }
+            });
             pairDevice(newPlantId, device.id);
             navigation.goBack();
           }
         },
+
         { text: "Cancel", style: "cancel" },
       ]
     );
@@ -87,7 +97,9 @@ const ScanScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Scan for Devices</Text>
+
       {isScanning && <Text style={styles.scanningText}>Scanning...</Text>}
+
       {devices.length === 0 && !isScanning ? (
         <EmptyState
           message="No devices found."
