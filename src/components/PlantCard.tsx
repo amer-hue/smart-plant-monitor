@@ -1,46 +1,68 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Plant, RootStackParamList } from '../types';
+import React from 'react';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
 import { usePlantStore } from '../state/context';
-import { getStatusColor, formatTemperature, getLightLevel } from '../utils/helpers';
 import { colors } from '../theme/colors';
+import { Plant, RootStackParamList } from '../types';
+import { formatTemperature, getLightLevel } from '../utils/helpers';
 
 type Props = {
   plant: Plant;
 };
 
 const PlantCard = ({ plant }: Props) => {
-  const { state: { isFahrenheit } } = usePlantStore();
+  const {
+    state: { isFahrenheit },
+  } = usePlantStore();
+
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  const statusColor = getStatusColor(plant.last);
-  const statusEmoji = statusColor === 'green' ? '🟢' : statusColor === 'amber' ? '🟠' : '🔴';
+  // 👇 this will show "IMG" or "NO IMG" on each card
+  const hasImage = !!plant.imageUri;
 
   return (
     <TouchableOpacity
       style={styles.card}
       onPress={() => navigation.navigate('PlantDetail', { plantId: plant.id })}
     >
-      <View style={styles.header}>
-        <Text style={styles.plantName}>{plant.name}</Text>
-        <Text style={[styles.statusDot, { color: colors[statusColor] }]}>{statusEmoji}</Text>
+      {/* Top: name/location + small thumbnail */}
+      <View style={styles.topRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.plantName}>🌱 {plant.name}</Text>
+          <Text style={styles.locationText}>
+            {plant.location?.trim() || 'Unknown location'}
+          </Text>
+          <Text style={styles.debugText}>{hasImage ? 'IMG' : 'NO IMG'}</Text>
+        </View>
+
+        {hasImage && (
+          <Image
+            source={{ uri: plant.imageUri! }}
+            style={styles.thumb}
+            resizeMode="cover"
+          />
+        )}
       </View>
-      <View style={styles.readings}>
-        <Text style={styles.label}>Moisture:</Text>
+
+      {/* Stats */}
+      <View style={styles.row}>
+        <Text style={styles.label}>💧 Moisture</Text>
         <Text style={styles.value}>
-          {plant.last ? `${plant.last.moisture}%` : 'N/A'}
+          {plant.last ? `${plant.last.moisture}%` : '--%'}
         </Text>
       </View>
-      <View style={styles.readings}>
-        <Text style={styles.label}>Temp:</Text>
+      <View style={styles.row}>
+        <Text style={styles.label}>🌡 Temperature</Text>
         <Text style={styles.value}>
-          {plant.last ? formatTemperature(plant.last.tempC, isFahrenheit) : 'N/A'}
+          {plant.last
+            ? formatTemperature(plant.last.tempC, isFahrenheit)
+            : '--°C'}
         </Text>
       </View>
-      <View style={styles.readings}>
-        <Text style={styles.label}>Light:</Text>
+      <View style={styles.rowNoBorder}>
+        <Text style={styles.label}>☀️ Light</Text>
         <Text style={styles.value}>
           {plant.last ? getLightLevel(plant.last.light) : 'N/A'}
         </Text>
@@ -51,37 +73,59 @@ const PlantCard = ({ plant }: Props) => {
 
 const styles = StyleSheet.create({
   card: {
+    flex: 1,
     backgroundColor: colors.surface,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    padding: 14,
+    margin: 8,
+    minWidth: 0,
   },
-  header: {
+  topRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
   plantName: {
     color: colors.text,
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  statusDot: {
-    fontSize: 24,
+  locationText: {
+    color: colors.textFaded,
+    fontSize: 13,
+    marginTop: 2,
   },
-  readings: {
+  debugText: {
+    color: '#888',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  thumb: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    marginLeft: 8,
+    backgroundColor: '#222',
+  },
+  row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    paddingVertical: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#444',
+  },
+  rowNoBorder: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
   },
   label: {
     color: colors.textFaded,
-    fontSize: 14,
+    fontSize: 13,
   },
   value: {
     color: colors.text,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
   },
 });

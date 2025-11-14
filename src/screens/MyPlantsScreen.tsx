@@ -4,13 +4,14 @@ import React from "react";
 import {
   Alert,
   FlatList,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { usePlantStore } from "../state/context";
-import { RootStackParamList } from "../types";
+import { Plant, RootStackParamList } from "../types"; // 👈 Plant type
 
 type NavProp = StackNavigationProp<RootStackParamList, "MyPlants">;
 
@@ -33,14 +34,32 @@ export default function MyPlantsScreen() {
     );
   };
 
-  const renderPlant = ({ item }: any) => (
+  // 👇 use Plant type and include small image inside the card
+  const renderPlant = ({ item }: { item: Plant }) => (
     <TouchableOpacity
       style={styles.card}
       onPress={() => navigation.navigate("PlantDetail", { plantId: item.id })}
       onLongPress={() => handleDelete(item.id)}
     >
-      <Text style={styles.plantName}>🌱 {item.name}</Text>
+      {/* top row: text + small thumbnail */}
+      <View style={styles.topRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.plantName}>🌱 {item.name}</Text>
+          <Text style={styles.location}>
+            📍 {item.location || "Unknown location"}
+          </Text>
+        </View>
 
+        {item.imageUri && (
+          <Image
+            source={{ uri: item.imageUri }}
+            style={styles.thumb}
+            resizeMode="cover"
+          />
+        )}
+      </View>
+
+      {/* stats */}
       <View style={styles.statRow}>
         <Text style={styles.statText}>
           💧 {item.last?.moisture ?? "--"}%
@@ -49,10 +68,6 @@ export default function MyPlantsScreen() {
           🌡 {item.last?.tempC ?? "--"}°C
         </Text>
       </View>
-
-      <Text style={styles.location}>
-        📍 {item.location || "Unknown location"}
-      </Text>
     </TouchableOpacity>
   );
 
@@ -104,16 +119,28 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 15,
   },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   plantName: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "600",
-    marginBottom: 10,
+  },
+  // small thumbnail
+  thumb: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    marginLeft: 8,
+    backgroundColor: "#222",
   },
   statRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginTop: 8,
   },
   statText: {
     color: "#4CAF50",
@@ -122,6 +149,7 @@ const styles = StyleSheet.create({
   location: {
     color: "#aaa",
     fontSize: 12,
+    marginTop: 2,
   },
   empty: {
     color: "#777",

@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import * as Crypto from 'expo-crypto'; // ✅ FIXED – use Expo crypto instead of uuid
+import * as Crypto from 'expo-crypto';
 import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,18 +8,29 @@ import { BLEClient } from '../ble/client';
 import EmptyState from '../components/EmptyState';
 import { usePlantStore } from '../state/context';
 import { colors } from '../theme/colors';
-import { RootStackParamList } from '../types';
+import { Plant, RootStackParamList } from '../types';
+
+type Device = { id: string; name: string; rssi: number };
 
 const ScanScreen = () => {
-  const [devices, setDevices] = useState<{ id: string; name: string; rssi: number }[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { state: { plants }, dispatch, pairDevice } = usePlantStore();
+  const {
+    state: { plants },
+    dispatch,
+    pairDevice,
+    refreshReading,   // 👈 pull this from store
+  } = usePlantStore();
 
   useEffect(() => {
     startScan();
-    return () => BLEClient.stopScan();
+    return () => {
+      if (BLEClient.stopScan) {
+        BLEClient.stopScan();
+      }
+    };
   }, []);
 
   const startScan = async () => {
@@ -27,63 +38,62 @@ const ScanScreen = () => {
     setIsScanning(true);
 
     try {
-      BLEClient.startScan(device => {
-        setDevices(prev => {
-          if (!prev.some(d => d.id === device.id)) {
-            return [...prev, device];
-          }
-          return prev;
-        });
-      });
+      const list = await BLEClient.startScan();
+      setDevices(list);
 
-      setTimeout(() => {
-        setIsScanning(false);
-        BLEClient.stopScan();
-        if (devices.length === 0) {
-          Alert.alert("No devices found", "Check if your sensor is on and try again.");
-        }
-      }, 5000);
-
+      if (list.length === 0) {
+        Alert.alert(
+          'No devices found',
+          'Check if your sensor is on and try again.',
+        );
+      }
     } catch (e) {
       console.error('BLE scan failed', e);
+      Alert.alert('Scan error', 'Bluetooth scan failed. Please try again.');
+    } finally {
       setIsScanning(false);
     }
   };
 
-  const handleDevicePress = (device: { id: string; name: string }) => {
+  const handleDevicePress = (device: Device) => {
     Alert.alert(
-      "Pair with Plant",
+      'Pair with Plant',
       `Choose a plant to associate with ${device.name}.`,
       [
-        // List all existing plants
-        ...plants.map(plant => ({
+        // existing plants
+        ...plants.map((plant: Plant) => ({
           text: plant.name,
-          onPress: () => {
-            pairDevice(plant.id, device.id);
+          onPress: async () => {
+            await pairDevice(plant.id, device.id);
+            await refreshReading(plant.id);   // 👈 get a mock reading right away
             navigation.goBack();
           },
         })),
 
-        // Option for creating a new plant
+        // create new plant
         {
           text: 'Create New Plant',
-          onPress: () => {
-            const newPlantId = Crypto.randomUUID();   // ✅ FIXED
+          onPress: async () => {
+            const newPlantId = Crypto.randomUUID();
             dispatch({
               type: 'ADD_PLANT',
-              payload: { id: newPlantId, name: `New Plant ${plants.length + 1}` }
+              payload: {
+                id: newPlantId,
+                name: `New Plant ${plants.length + 1}`,
+              } as Plant,
             });
-            pairDevice(newPlantId, device.id);
+            await pairDevice(newPlantId, device.id);
+            await refreshReading(newPlantId); // 👈 and here too
             navigation.goBack();
-          }
+          },
         },
 
-        { text: "Cancel", style: "cancel" },
-      ]
+        { text: 'Cancel', style: 'cancel' },
+      ],
     );
   };
 
-  const renderDevice = ({ item }: { item: { id: string; name: string; rssi: number } }) => (
+  const renderDevice = ({ item }: { item: Device }) => (
     <TouchableOpacity
       style={styles.deviceItem}
       onPress={() => handleDevicePress(item)}
@@ -110,7 +120,7 @@ const ScanScreen = () => {
         <FlatList
           data={devices}
           renderItem={renderDevice}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           style={styles.deviceList}
         />
       )}

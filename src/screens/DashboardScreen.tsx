@@ -1,39 +1,60 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import BananaImage from '../assets/banana.png';
-
+import { usePlantStore } from '../state/context';
+import { formatTemperature, getLightLevel } from '../utils/helpers';
 
 export default function DashboardScreen() {
+  const {
+    state: { plants, isFahrenheit },
+  } = usePlantStore();
+
+  // Pick a "primary" plant — last added. Change selection logic if you prefer.
+  const plant = plants.length > 0 ? plants[plants.length - 1] : undefined;
+
+  const photoSource =
+    plant?.imageUri ? { uri: plant.imageUri } : BananaImage;
+
+  const plantName = plant?.name ?? 'No plants yet';
+  const tempText = plant?.last
+    ? formatTemperature(plant.last.tempC, isFahrenheit)
+    : '--°C';
+  const moistureText = plant?.last ? `${plant.last.moisture}%` : '--%';
+  const lightText = plant?.last ? `${getLightLevel(plant.last.light)} lux` : 'N/A';
+
   return (
     <View style={styles.container}>
-      {/* Welcome message */}
       <Text style={styles.welcome}>Welcome back, Amer Issa</Text>
 
-      {/* Plant image */}
-      <Image source={BananaImage} style={styles.plantImage} />
+      <Image source={photoSource} style={styles.plantImage} />
 
-      {/* Plant name */}
-      <Text style={styles.plantName}>Large Banana Leaf Potted Plant</Text>
+      <Text style={styles.plantName}>{plantName}</Text>
 
-      {/* Stats card */}
       <View style={styles.card}>
         <View style={styles.row}>
           <Text style={styles.label}>🌡 Temperature</Text>
-          <Text style={styles.value}>23°C</Text>
+          <Text style={styles.value}>{tempText}</Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>💧 Moisture</Text>
-          <Text style={styles.value}>45%</Text>
+          <Text style={styles.value}>{moistureText}</Text>
         </View>
+        {/* You don't have humidity in your Reading type; show placeholder */}
         <View style={styles.row}>
           <Text style={styles.label}>💦 Humidity</Text>
-          <Text style={styles.value}>60%</Text>
+          <Text style={styles.value}>--%</Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>☀️ Light</Text>
-          <Text style={styles.value}>1,200 lux</Text>
+          <Text style={styles.value}>{lightText}</Text>
         </View>
       </View>
+
+      {plants.length === 0 && (
+        <Text style={styles.hint}>
+          Add a plant to see live stats here.
+        </Text>
+      )}
     </View>
   );
 }
@@ -48,14 +69,16 @@ const styles = StyleSheet.create({
   welcome: {
     fontSize: 18,
     color: '#fff',
-    marginTop: 40, // ✅ pushes it down a bit
+    marginTop: 40,
     marginBottom: 10,
   },
   plantImage: {
     width: 180,
     height: 180,
-    resizeMode: 'contain',
+    resizeMode: 'cover',
+    borderRadius: 14,
     marginBottom: 15,
+    backgroundColor: '#222',
   },
   plantName: {
     fontSize: 16,
@@ -84,5 +107,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '500',
+  },
+  hint: {
+    color: '#9aa0a6',
+    marginTop: 12,
   },
 });

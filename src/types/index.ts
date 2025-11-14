@@ -11,7 +11,7 @@ export type Plant = {
   type?: string;
   location?: string;
   deviceId?: string;
-
+  imageUri?: string;   
   last?: {
     tempC?: number;
     moisture?: number;

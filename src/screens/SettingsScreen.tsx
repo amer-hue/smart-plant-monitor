@@ -1,72 +1,81 @@
-import React, { useState } from 'react';
-import { View, Text, Switch, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { usePlantStore } from '../state/context';
+import React, { useState } from "react";
+import {
+  Alert,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { usePlantStore } from "../state/context";
 
 export default function SettingsScreen() {
-  const { state, dispatch } = usePlantStore();
-  const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
+  const {
+    state: { isFahrenheit },
+    dispatch,
+  } = usePlantStore();
+
+  // local state just for notifications toggle
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  const toggleTempUnit = () => {
+    dispatch({ type: "TOGGLE_TEMP_UNIT" });
+  };
+
+  const handleAbout = () => {
+    Alert.alert(
+      "About",
+      "Smart Plant Monitor\nVersion 1.0.0\n\nMonitor your plants with temperature, moisture, and light readings."
+    );
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Logout",
+      "This is a demo screen – no real account is connected yet.",
+      [{ text: "OK" }]
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Settings</Text>
+      <Text style={styles.title}>Settings</Text>
 
-      {/* Temperature Unit Toggle */}
-      <View style={styles.row}>
-        <Text style={styles.label}>
-          Temperature Unit ({state.isFahrenheit ? '°F' : '°C'})
+      {/* Temperature unit toggle */}
+      <View style={styles.settingRow}>
+        <Text style={styles.settingLabel}>
+          Temperature Unit ({isFahrenheit ? "°F" : "°C"})
         </Text>
         <Switch
-          value={state.isFahrenheit}
-          onValueChange={() => dispatch({ type: 'TOGGLE_TEMP_UNIT' })}
+          value={isFahrenheit}
+          onValueChange={toggleTempUnit}
+          trackColor={{ false: "#555", true: "#4CAF50" }}
+          thumbColor="#fff"
         />
       </View>
 
-      {/* Notifications Toggle */}
-      <View style={styles.row}>
-        <Text style={styles.label}>Notifications</Text>
+      {/* Notifications toggle (local state only for now) */}
+      <View className="settingRow" style={styles.settingRow}>
+        <Text style={styles.settingLabel}>Notifications</Text>
         <Switch
-          value={notifications}
-          onValueChange={() => setNotifications(!notifications)}
+          value={notificationsEnabled}
+          onValueChange={setNotificationsEnabled}
+          trackColor={{ false: "#555", true: "#4CAF50" }}
+          thumbColor="#fff"
         />
       </View>
 
-      {/* Dark Mode Toggle */}
-      <View style={styles.row}>
-        <Text style={styles.label}>Dark Mode</Text>
-        <Switch
-          value={darkMode}
-          onValueChange={() => setDarkMode(!darkMode)}
-        />
-      </View>
-
-      {/* Manage Plants */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => Alert.alert('Manage Plants', 'Feature coming soon!')}
-      >
-        <Text style={styles.buttonText}>🌱 Manage Plants</Text>
+      {/* About button */}
+      <TouchableOpacity style={styles.button} onPress={handleAbout}>
+        <Text style={styles.buttonText}>ℹ️  About</Text>
       </TouchableOpacity>
 
-      {/* About */}
+      {/* Logout button */}
       <TouchableOpacity
-        style={styles.button}
-        onPress={() =>
-          Alert.alert(
-            'About Smart Plant',
-            'Smart Plant Monitoring System v1.0\nDeveloped by Amer Issa.'
-          )
-        }
+        style={[styles.button, styles.logoutButton]}
+        onPress={handleLogout}
       >
-        <Text style={styles.buttonText}>ℹ️ About</Text>
-      </TouchableOpacity>
-
-      {/* Logout */}
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: '#E53935' }]}
-        onPress={() => Alert.alert('Logout', 'You have been logged out.')}
-      >
-        <Text style={styles.buttonText}>🚪 Logout</Text>
+        <Text style={styles.logoutText}>📕  Logout</Text>
       </TouchableOpacity>
     </View>
   );
@@ -75,39 +84,48 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: "#000",
     padding: 20,
   },
-  header: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
+  title: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#fff",
+    textAlign: "center",
     marginBottom: 20,
-    textAlign: 'center',
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#1E1E1E',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
+  settingRow: {
+    backgroundColor: "#1E1E1E",
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  label: {
-    color: '#fff',
+  settingLabel: {
+    color: "#fff",
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 15,
+    backgroundColor: "#4CAF50",
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    marginTop: 16,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "600",
+  },
+  logoutButton: {
+    backgroundColor: "#D32F2F",
+  },
+  logoutText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "600",
   },
 });

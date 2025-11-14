@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   Alert,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -10,8 +11,8 @@ import {
 
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-
 import * as Crypto from 'expo-crypto';
+import * as ImagePicker from 'expo-image-picker';
 
 import { usePlantStore } from '../state/context';
 import { Plant, RootStackParamList } from '../types';
@@ -25,7 +26,53 @@ export default function AddPlantScreen() {
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [location, setLocation] = useState('');
+  const [imageUri, setImageUri] = useState<string | undefined>(); // 🟢 Added
 
+ // temporary bypass while simulator storage is broken
+const persistToAppStorage = async (srcUri: string) => srcUri;
+
+  // 🟢 Pick image from library
+  const handlePickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow access to your photos.');
+      return;
+    }
+
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!res.canceled) {
+      const local = await persistToAppStorage(res.assets[0].uri);
+      setImageUri(local);
+    }
+  };
+
+  // 🟢 Take photo with camera
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow camera access.');
+      return;
+    }
+
+    const res = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!res.canceled) {
+      const local = await persistToAppStorage(res.assets[0].uri);
+      setImageUri(local);
+    }
+  };
+
+  // 🟢 Save plant with image
   const handleSave = () => {
     if (!name.trim()) {
       Alert.alert('Error', 'Please enter a plant name.');
@@ -37,6 +84,7 @@ export default function AddPlantScreen() {
       name,
       type: type.trim() || undefined,
       location: location.trim() || undefined,
+      imageUri, // 🟢 added image reference
       last: undefined,
     };
 
@@ -44,7 +92,8 @@ export default function AddPlantScreen() {
 
     navigation.navigate('MainTabs', {
       screen: 'MyPlants',
-  });  };
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -73,6 +122,24 @@ export default function AddPlantScreen() {
         value={location}
         onChangeText={setLocation}
       />
+
+      {/* 🟢 Image preview */}
+      {imageUri ? (
+        <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="cover" />
+      ) : (
+        <Text style={styles.noImageText}>No image selected</Text>
+      )}
+
+      {/* 🟢 Image buttons */}
+      <View style={styles.row}>
+        <TouchableOpacity style={styles.secondaryButton} onPress={handleTakePhoto}>
+          <Text style={styles.secondaryButtonText}>📷 Take Photo</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.secondaryButton} onPress={handlePickImage}>
+          <Text style={styles.secondaryButtonText}>🖼️ Choose Image</Text>
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity style={styles.button} onPress={handleSave}>
         <Text style={styles.buttonText}>Save Plant</Text>
@@ -117,5 +184,35 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 220,
+    borderRadius: 10,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  noImageText: {
+    color: '#aaa',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  secondaryButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: '#4CAF50',
+    fontWeight: '500',
   },
 });

@@ -21,21 +21,7 @@ const initialState: State = {
   isFahrenheit: false,
 };
 
-const PlantContext = createContext<{
-  state: State;
-  dispatch: React.Dispatch<Action>;
-  refreshReading: (plantId: string) => void;
-  unpairDevice: (plantId: string) => void;
-  pairDevice: (plantId: string, deviceId: string) => void;
-  addPlant: (plant: Plant) => void; // ✅ NEW
-}>({
-  state: initialState,
-  dispatch: () => null,
-  refreshReading: () => null,
-  unpairDevice: () => null,
-  pairDevice: () => null,
-  addPlant: () => null, // ✅ NEW
-});
+const PLANTS_KEY = 'plants_v2';
 
 const plantReducer = (state: State, action: Action): State => {
   switch (action.type) {
@@ -71,14 +57,25 @@ const plantReducer = (state: State, action: Action): State => {
   }
 };
 
+type CtxShape = {
+  state: State;
+  dispatch: React.Dispatch<Action>;
+  refreshReading: (plantId: string) => void;
+  unpairDevice: (plantId: string) => void;
+  pairDevice: (plantId: string, deviceId: string) => void;
+  addPlant: (plant: Plant) => void;
+  updatePlant: (plant: Plant) => void;   // 👈 new helper
+};
+
+const PlantContext = createContext<CtxShape | null>(null);
+
 export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, dispatch] = useReducer(plantReducer, initialState);
 
-  // Load state from AsyncStorage on startup
   useEffect(() => {
     const loadState = async () => {
       try {
-        const storedPlants = await AsyncStorage.getItem('plants');
+        const storedPlants = await AsyncStorage.getItem(PLANTS_KEY);
         if (storedPlants) {
           dispatch({ type: 'SET_PLANTS', payload: JSON.parse(storedPlants) });
         }
@@ -89,11 +86,10 @@ export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
     loadState();
   }, []);
 
-  // Save state to AsyncStorage whenever plants change
   useEffect(() => {
     const saveState = async () => {
       try {
-        await AsyncStorage.setItem('plants', JSON.stringify(state.plants));
+        await AsyncStorage.setItem(PLANTS_KEY, JSON.stringify(state.plants));
       } catch (e) {
         console.error('Failed to save plants to storage', e);
       }
@@ -101,13 +97,16 @@ export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
     saveState();
   }, [state.plants]);
 
-  // Action helpers
   const refreshReading = async (plantId: string) => {
     const plant = state.plants.find(p => p.id === plantId);
     if (!plant || !plant.deviceId) return;
+  
     try {
       const reading = await BLEClient.readLatest(plant.deviceId);
-      dispatch({ type: 'UPDATE_READING', payload: { plantId, reading } });
+      dispatch({
+        type: 'UPDATE_READING',
+        payload: { plantId, reading },
+      });
     } catch (e) {
       console.error('Failed to refresh reading', e);
     }
@@ -133,9 +132,12 @@ export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  // ✅ NEW: Add plant
   const addPlant = (plant: Plant) => {
-    dispatch({ type: 'ADD_PLANT', payload: plant });
+    dispatch({ type: 'ADD_PLANT', payload: { ...plant } });
+  };
+
+  const updatePlant = (plant: Plant) => {
+    dispatch({ type: 'UPDATE_PLANT', payload: { ...plant } });
   };
 
   return (
@@ -146,7 +148,8 @@ export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
         refreshReading,
         unpairDevice,
         pairDevice,
-        addPlant, // ✅ make available
+        addPlant,
+        updatePlant,
       }}
     >
       {children}
@@ -155,9 +158,7 @@ export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const usePlantStore = () => {
-  const context = useContext(PlantContext);
-  if (context === undefined) {
-    throw new Error('usePlantStore must be used within a PlantProvider');
-  }
-  return context;
+  const ctx = useContext(PlantContext);
+  if (!ctx) throw new Error('usePlantStore must be used within a PlantProvider');
+  return ctx;
 };
