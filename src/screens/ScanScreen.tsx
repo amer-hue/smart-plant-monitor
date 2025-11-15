@@ -1,14 +1,23 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as Crypto from 'expo-crypto';
 import React, { useEffect, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { BLEClient } from '../ble/client';
 import EmptyState from '../components/EmptyState';
 import { usePlantStore } from '../state/context';
 import { colors } from '../theme/colors';
-import { Plant, RootStackParamList } from '../types';
+import { RootStackParamList } from '../types';
 
 type Device = { id: string; name: string; rssi: number };
 
@@ -21,16 +30,12 @@ const ScanScreen = () => {
     state: { plants },
     dispatch,
     pairDevice,
-    refreshReading,   // 👈 pull this from store
+    refreshReading,
   } = usePlantStore();
 
   useEffect(() => {
     startScan();
-    return () => {
-      if (BLEClient.stopScan) {
-        BLEClient.stopScan();
-      }
-    };
+    return () => BLEClient.stopScan && BLEClient.stopScan();
   }, []);
 
   const startScan = async () => {
@@ -41,15 +46,10 @@ const ScanScreen = () => {
       const list = await BLEClient.startScan();
       setDevices(list);
 
-      if (list.length === 0) {
-        Alert.alert(
-          'No devices found',
-          'Check if your sensor is on and try again.',
-        );
-      }
+      if (list.length === 0)
+        Alert.alert("No devices found", "Make sure your sensor is powered on.");
     } catch (e) {
-      console.error('BLE scan failed', e);
-      Alert.alert('Scan error', 'Bluetooth scan failed. Please try again.');
+      Alert.alert("Error", "Bluetooth scan failed.");
     } finally {
       setIsScanning(false);
     }
@@ -57,50 +57,50 @@ const ScanScreen = () => {
 
   const handleDevicePress = (device: Device) => {
     Alert.alert(
-      'Pair with Plant',
-      `Choose a plant to associate with ${device.name}.`,
+      "Pair Device",
+      `Which plant do you want to link to ${device.name}?`,
       [
-        // existing plants
-        ...plants.map((plant: Plant) => ({
-          text: plant.name,
+        ...plants.map((p) => ({
+          text: p.name,
           onPress: async () => {
-            await pairDevice(plant.id, device.id);
-            await refreshReading(plant.id);   // 👈 get a mock reading right away
+            await pairDevice(p.id, device.id);
+            await refreshReading(p.id);
             navigation.goBack();
           },
         })),
-
-        // create new plant
         {
-          text: 'Create New Plant',
+          text: "Create New Plant",
           onPress: async () => {
             const newPlantId = Crypto.randomUUID();
             dispatch({
-              type: 'ADD_PLANT',
-              payload: {
-                id: newPlantId,
-                name: `New Plant ${plants.length + 1}`,
-              } as Plant,
+              type: "ADD_PLANT",
+              payload: { id: newPlantId, name: `New Plant ${plants.length + 1}` },
             });
             await pairDevice(newPlantId, device.id);
-            await refreshReading(newPlantId); // 👈 and here too
+            await refreshReading(newPlantId);
             navigation.goBack();
           },
         },
-
-        { text: 'Cancel', style: 'cancel' },
-      ],
+        { text: "Cancel", style: "cancel" },
+      ]
     );
   };
 
   const renderDevice = ({ item }: { item: Device }) => (
-    <TouchableOpacity
-      style={styles.deviceItem}
-      onPress={() => handleDevicePress(item)}
-    >
-      <Text style={styles.deviceName}>{item.name || 'Unknown Device'}</Text>
+    <TouchableOpacity style={styles.card} onPress={() => handleDevicePress(item)}>
+      <View style={styles.cardHeader}>
+        <Ionicons name="bluetooth" size={22} color="#4CAF50" />
+        <Text style={styles.deviceName}>
+          {item.name || "Unknown Device"}
+        </Text>
+      </View>
+
       <Text style={styles.deviceId}>{item.id}</Text>
-      <Text style={styles.deviceRssi}>{`RSSI: ${item.rssi}`}</Text>
+
+      <View style={styles.signalRow}>
+        <Ionicons name="wifi-outline" size={16} color="#bbb" />
+        <Text style={styles.deviceRssi}>RSSI: {item.rssi}</Text>
+      </View>
     </TouchableOpacity>
   );
 
@@ -112,62 +112,81 @@ const ScanScreen = () => {
 
       {devices.length === 0 && !isScanning ? (
         <EmptyState
-          message="No devices found."
-          ctaText="Try Again"
+          message="No devices found nearby."
+          ctaText="Scan Again"
           onCtaPress={startScan}
         />
       ) : (
         <FlatList
           data={devices}
-          renderItem={renderDevice}
           keyExtractor={(item) => item.id}
-          style={styles.deviceList}
+          renderItem={renderDevice}
+          contentContainerStyle={{ paddingBottom: 50 }}
         />
       )}
     </SafeAreaView>
   );
 };
 
+export default ScanScreen;
+
+// -------------------------------
+// STYLES
+// -------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
   },
+
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 20,
-    marginTop: 16,
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#fff",
+    textAlign: "center",
+    marginTop: 20,
+    marginBottom: 10,
   },
+
   scanningText: {
     color: colors.textFaded,
-    textAlign: 'center',
-    marginBottom: 10,
+    textAlign: "center",
+    marginBottom: 20,
   },
-  deviceList: {
-    flex: 1,
-  },
-  deviceItem: {
+
+  // CARD
+  card: {
     backgroundColor: colors.surface,
     padding: 16,
-    borderRadius: 8,
-    marginBottom: 10,
+    borderRadius: 14,
+    marginBottom: 14,
+    borderColor: "#333",
+    borderWidth: 1,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
   },
   deviceName: {
     color: colors.text,
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: "600",
+    marginLeft: 8,
   },
   deviceId: {
     color: colors.textFaded,
-    fontSize: 12,
+    fontSize: 13,
+    marginBottom: 8,
+  },
+  signalRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   deviceRssi: {
     color: colors.textFaded,
-    fontSize: 12,
+    fontSize: 13,
+    marginLeft: 6,
   },
 });
-
-export default ScanScreen;

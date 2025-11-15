@@ -1,3 +1,5 @@
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
 import React, { useState } from "react";
 import {
   Alert,
@@ -8,14 +10,18 @@ import {
   View,
 } from "react-native";
 import { usePlantStore } from "../state/context";
+import { RootStackParamList } from "../types";
+
+type NavProp = StackNavigationProp<RootStackParamList, "Settings">;
 
 export default function SettingsScreen() {
+  const navigation = useNavigation<NavProp>();
+
   const {
-    state: { isFahrenheit },
+    state: { isFahrenheit, user },
     dispatch,
   } = usePlantStore();
 
-  // local state just for notifications toggle
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const toggleTempUnit = () => {
@@ -30,18 +36,30 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "This is a demo screen – no real account is connected yet.",
-      [{ text: "OK" }]
-    );
+    Alert.alert("Logout", "This is a demo — no backend connected yet.", [
+      { text: "OK" },
+    ]);
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Settings</Text>
 
-      {/* Temperature unit toggle */}
+      {/* Profile card */}
+      <View style={styles.profileCard}>
+        <Text style={styles.profileIcon}>👤</Text>
+        <Text style={styles.profileName}>{user?.name || "Guest User"}</Text>
+        <Text style={styles.profileEmail}>{user?.email || "No email"}</Text>
+
+        {/* Edit Profile Button */}
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => navigation.navigate("EditProfile")}
+        >
+          <Text style={styles.editButtonText}>Edit Profile</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.settingRow}>
         <Text style={styles.settingLabel}>
           Temperature Unit ({isFahrenheit ? "°F" : "°C"})
@@ -54,8 +72,7 @@ export default function SettingsScreen() {
         />
       </View>
 
-      {/* Notifications toggle (local state only for now) */}
-      <View className="settingRow" style={styles.settingRow}>
+      <View style={styles.settingRow}>
         <Text style={styles.settingLabel}>Notifications</Text>
         <Switch
           value={notificationsEnabled}
@@ -65,12 +82,10 @@ export default function SettingsScreen() {
         />
       </View>
 
-      {/* About button */}
       <TouchableOpacity style={styles.button} onPress={handleAbout}>
         <Text style={styles.buttonText}>ℹ️  About</Text>
       </TouchableOpacity>
 
-      {/* Logout button */}
       <TouchableOpacity
         style={[styles.button, styles.logoutButton]}
         onPress={handleLogout}
@@ -81,6 +96,7 @@ export default function SettingsScreen() {
   );
 }
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -92,7 +108,42 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#fff",
     textAlign: "center",
+    marginTop: 40,
     marginBottom: 20,
+  },
+  profileCard: {
+    backgroundColor: "#1E1E1E",
+    paddingVertical: 20,
+    alignItems: "center",
+    borderRadius: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  profileIcon: {
+    fontSize: 42,
+    marginBottom: 10,
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  profileEmail: {
+    fontSize: 14,
+    color: "#aaa",
+    marginBottom: 10,
+  },
+  editButton: {
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    backgroundColor: "#4CAF50",
+    borderRadius: 12,
+  },
+  editButtonText: {
+    color: "#fff",
+    fontWeight: "600",
   },
   settingRow: {
     backgroundColor: "#1E1E1E",
@@ -103,6 +154,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#333",
   },
   settingLabel: {
     color: "#fff",

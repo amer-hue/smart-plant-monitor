@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import React, { useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { RootStackParamList } from '../types';
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SignIn'>;
@@ -10,6 +11,19 @@ export default function SignInScreen() {
   const navigation = useNavigation<AuthScreenNavigationProp>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      Alert.alert("Missing Info", "Please enter both email and password.");
+      return;
+    }
+
+    // Save temporary user (fake auth)
+    const user = { name: "User", email };
+    await AsyncStorage.setItem("user", JSON.stringify(user));
+
+    navigation.replace('MainTabs');
+  };
 
   return (
     <View style={styles.container}>
@@ -32,15 +46,12 @@ export default function SignInScreen() {
         onChangeText={setPassword}
       />
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.replace('MainTabs')}
-      >
+      <TouchableOpacity style={styles.button} onPress={handleSignIn}>
         <Text style={styles.buttonText}>Sign In</Text>
       </TouchableOpacity>
 
       <Text style={styles.footerText}>
-        I'm a new user.{' '}
+        I'm a new user.{" "}
         <Text
           style={styles.footerLink}
           onPress={() => navigation.navigate('SignUp')}
@@ -52,10 +63,11 @@ export default function SignInScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212', // Dark background
+    backgroundColor: '#121212',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
@@ -78,7 +90,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    backgroundColor: '#4CAF50', // Green button
+    backgroundColor: '#4CAF50',
     borderRadius: 10,
     paddingVertical: 15,
     alignItems: 'center',

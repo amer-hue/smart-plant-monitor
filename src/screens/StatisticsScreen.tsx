@@ -1,7 +1,14 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import React from "react";
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { LineChart } from "react-native-chart-kit";
 
 import { usePlantStore } from "../state/context";
@@ -13,10 +20,14 @@ type NavProp = StackNavigationProp<RootStackParamList, "Statistics">;
 export default function StatisticsScreen() {
   const route = useRoute<StatsRouteProp>();
   const navigation = useNavigation<NavProp>();
-  const { state } = usePlantStore();
+
+  // 👇 This line is REQUIRED for the °C/°F toggle to work
+  const {
+    state: { plants, isFahrenheit },
+  } = usePlantStore();
 
   const plantId = route.params?.plantId;
-  const plant = state.plants.find((p) => p.id === plantId);
+  const plant = plants.find((p) => p.id === plantId);
 
   if (!plant) {
     return (
@@ -26,7 +37,7 @@ export default function StatisticsScreen() {
     );
   }
 
-  // Sample fake chart data (later replaced with Firestore)
+  // Fake data for now — replace later with Firestore
   const history = {
     labels: ["M", "T", "W", "T", "F"],
     temp: [22, 23, 20, 24, 26],
@@ -35,8 +46,10 @@ export default function StatisticsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* 🔙 Back Button */}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 60 }}
+    >
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backText}>← Back</Text>
       </TouchableOpacity>
@@ -44,7 +57,10 @@ export default function StatisticsScreen() {
       <Text style={styles.title}>Statistics for {plant.name}</Text>
 
       {/* 🌡 Temperature Chart */}
-      <Text style={styles.chartLabel}>🌡 Temperature (°C)</Text>
+      <Text style={styles.chartLabel}>
+        🌡 Temperature (°{isFahrenheit ? "F" : "C"})
+      </Text>
+
       <LineChart
         data={{
           labels: history.labels,
@@ -59,6 +75,7 @@ export default function StatisticsScreen() {
 
       {/* 💧 Moisture Chart */}
       <Text style={styles.chartLabel}>💧 Moisture (%)</Text>
+
       <LineChart
         data={{
           labels: history.labels,
@@ -73,6 +90,7 @@ export default function StatisticsScreen() {
 
       {/* ☀️ Light Chart */}
       <Text style={styles.chartLabel}>☀️ Light (lux)</Text>
+
       <LineChart
         data={{
           labels: history.labels,
@@ -84,7 +102,7 @@ export default function StatisticsScreen() {
         style={styles.chart}
         bezier
       />
-    </View>
+    </ScrollView>
   );
 }
 

@@ -12,7 +12,9 @@ import ScanScreen from './src/screens/ScanScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SignInScreen from './src/screens/SignInScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
-import StatisticsScreen from './src/screens/StatisticsScreen'; // (if needed)
+import StatisticsScreen from './src/screens/StatisticsScreen';
+
+import EditProfileScreen from './src/screens/EditProfileScreen'; // ✅ ADD THIS
 
 import TabNavigator from './src/navigation/TabNavigator';
 import { colors } from './src/theme/colors';
@@ -34,7 +36,7 @@ const App = () => {
             }}
           >
 
-            {/* 🔐 AUTH SCREENS */}
+            {/* 🔐 AUTH */}
             <Stack.Screen
               name="SignIn"
               component={SignInScreen}
@@ -53,37 +55,43 @@ const App = () => {
               options={{ headerShown: false }}
             />
 
-           
+            {/* NEW: Edit Profile */}
+            <Stack.Screen
+              name="EditProfile"
+              component={EditProfileScreen}
+              options={{ title: "Edit Profile" }}
+            />
 
+            {/* 🌱 PLANT SCREENS */}
             <Stack.Screen
               name="AddPlant"
               component={AddPlantScreen}
-              options={{ title: 'Add Plant' }}
+              options={{ title: "Add Plant" }}
             />
 
             <Stack.Screen
               name="PlantDetail"
               component={PlantDetailScreen}
-              options={{ title: 'Plant Details' }}
+              options={{ title: "Plant Details" }}
             />
 
             <Stack.Screen
               name="Statistics"
               component={StatisticsScreen}
-              options={{ title: 'Statistics' }}
+              options={{ title: "Statistics" }}
             />
 
-            {/* 🔧 SETTINGS & SCAN */}
+            {/* ⚙️ SETTINGS & SCAN */}
             <Stack.Screen
               name="Scan"
               component={ScanScreen}
-              options={{ title: 'Find Sensor' }}
+              options={{ title: "Find Sensor" }}
             />
 
             <Stack.Screen
               name="Settings"
               component={SettingsScreen}
-              options={{ title: 'Settings' }}
+              options={{ title: "Settings" }}
             />
 
           </Stack.Navigator>

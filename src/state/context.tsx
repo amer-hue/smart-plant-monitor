@@ -1,11 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
-import { BLEClient } from '../ble/client';
 import { Plant, Reading } from '../types';
+
+type User = {
+  name: string;
+  email: string;
+};
 
 type State = {
   plants: Plant[];
   isFahrenheit: boolean;
+  user: User | null;
 };
 
 type Action =
@@ -14,19 +19,23 @@ type Action =
   | { type: 'REMOVE_PLANT'; payload: string }
   | { type: 'TOGGLE_TEMP_UNIT' }
   | { type: 'SET_PLANTS'; payload: Plant[] }
-  | { type: 'UPDATE_READING'; payload: { plantId: string; reading: Reading } };
+  | { type: 'UPDATE_READING'; payload: { plantId: string; reading: Reading } }
+  | { type: 'SET_USER'; payload: User };
 
 const initialState: State = {
   plants: [],
   isFahrenheit: false,
+  user: null,
 };
 
 const PLANTS_KEY = 'plants_v2';
+const USER_KEY = 'user_v1';
 
 const plantReducer = (state: State, action: Action): State => {
   switch (action.type) {
     case 'ADD_PLANT':
       return { ...state, plants: [...state.plants, action.payload] };
+
     case 'UPDATE_PLANT':
       return {
         ...state,
@@ -34,15 +43,19 @@ const plantReducer = (state: State, action: Action): State => {
           p.id === action.payload.id ? action.payload : p
         ),
       };
+
     case 'REMOVE_PLANT':
       return {
         ...state,
         plants: state.plants.filter(p => p.id !== action.payload),
       };
+
     case 'TOGGLE_TEMP_UNIT':
       return { ...state, isFahrenheit: !state.isFahrenheit };
+
     case 'SET_PLANTS':
       return { ...state, plants: action.payload };
+
     case 'UPDATE_READING':
       return {
         ...state,
@@ -52,26 +65,21 @@ const plantReducer = (state: State, action: Action): State => {
             : p
         ),
       };
+
+    case 'SET_USER':
+      return { ...state, user: action.payload };
+
     default:
       return state;
   }
 };
 
-type CtxShape = {
-  state: State;
-  dispatch: React.Dispatch<Action>;
-  refreshReading: (plantId: string) => void;
-  unpairDevice: (plantId: string) => void;
-  pairDevice: (plantId: string, deviceId: string) => void;
-  addPlant: (plant: Plant) => void;
-  updatePlant: (plant: Plant) => void;   // 👈 new helper
-};
-
-const PlantContext = createContext<CtxShape | null>(null);
+const PlantContext = createContext<any>(null);
 
 export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, dispatch] = useReducer(plantReducer, initialState);
 
+  // Load AsyncStorage
   useEffect(() => {
     const loadState = async () => {
       try {
@@ -79,79 +87,32 @@ export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
         if (storedPlants) {
           dispatch({ type: 'SET_PLANTS', payload: JSON.parse(storedPlants) });
         }
+
+        const storedUser = await AsyncStorage.getItem(USER_KEY);
+        if (storedUser) {
+          dispatch({ type: 'SET_USER', payload: JSON.parse(storedUser) });
+        }
       } catch (e) {
-        console.error('Failed to load plants from storage', e);
+        console.error('Failed to load storage', e);
       }
     };
     loadState();
   }, []);
 
+  // Save plants
   useEffect(() => {
-    const saveState = async () => {
-      try {
-        await AsyncStorage.setItem(PLANTS_KEY, JSON.stringify(state.plants));
-      } catch (e) {
-        console.error('Failed to save plants to storage', e);
-      }
-    };
-    saveState();
+    AsyncStorage.setItem(PLANTS_KEY, JSON.stringify(state.plants));
   }, [state.plants]);
 
-  const refreshReading = async (plantId: string) => {
-    const plant = state.plants.find(p => p.id === plantId);
-    if (!plant || !plant.deviceId) return;
-  
-    try {
-      const reading = await BLEClient.readLatest(plant.deviceId);
-      dispatch({
-        type: 'UPDATE_READING',
-        payload: { plantId, reading },
-      });
-    } catch (e) {
-      console.error('Failed to refresh reading', e);
+  // Save user
+  useEffect(() => {
+    if (state.user) {
+      AsyncStorage.setItem(USER_KEY, JSON.stringify(state.user));
     }
-  };
-
-  const unpairDevice = (plantId: string) => {
-    const plant = state.plants.find(p => p.id === plantId);
-    if (!plant || !plant.deviceId) return;
-    BLEClient.disconnect(plant.deviceId);
-    dispatch({
-      type: 'UPDATE_PLANT',
-      payload: { ...plant, deviceId: undefined },
-    });
-  };
-
-  const pairDevice = (plantId: string, deviceId: string) => {
-    const plant = state.plants.find(p => p.id === plantId);
-    if (!plant) return;
-    BLEClient.connect(deviceId);
-    dispatch({
-      type: 'UPDATE_PLANT',
-      payload: { ...plant, deviceId },
-    });
-  };
-
-  const addPlant = (plant: Plant) => {
-    dispatch({ type: 'ADD_PLANT', payload: { ...plant } });
-  };
-
-  const updatePlant = (plant: Plant) => {
-    dispatch({ type: 'UPDATE_PLANT', payload: { ...plant } });
-  };
+  }, [state.user]);
 
   return (
-    <PlantContext.Provider
-      value={{
-        state,
-        dispatch,
-        refreshReading,
-        unpairDevice,
-        pairDevice,
-        addPlant,
-        updatePlant,
-      }}
-    >
+    <PlantContext.Provider value={{ state, dispatch }}>
       {children}
     </PlantContext.Provider>
   );
@@ -159,6 +120,6 @@ export const PlantProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const usePlantStore = () => {
   const ctx = useContext(PlantContext);
-  if (!ctx) throw new Error('usePlantStore must be used within a PlantProvider');
+  if (!ctx) throw new Error('usePlantStore must be inside provider');
   return ctx;
 };

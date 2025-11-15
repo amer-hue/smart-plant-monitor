@@ -11,7 +11,7 @@ export type Plant = {
   type?: string;
   location?: string;
   deviceId?: string;
-  imageUri?: string;   
+  imageUri?: string;
   last?: {
     tempC?: number;
     moisture?: number;
@@ -19,7 +19,7 @@ export type Plant = {
   };
 };
 
-
+// Add EditProfile route
 export type RootStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
@@ -34,6 +34,7 @@ export type RootStackParamList = {
   AddPlant: undefined;
   PlantDetail: { plantId: string };
   Statistics: { plantId: string };
+
+  // NEW SCREEN
+  EditProfile: undefined;
 };
-
-

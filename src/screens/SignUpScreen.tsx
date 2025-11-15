@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import React, { useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { RootStackParamList } from '../types';
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SignUp'>;
@@ -12,6 +13,19 @@ export default function SignUpScreen() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const handleSignUp = async () => {
+    if (!name || !phone || !email || !password) {
+      Alert.alert("Missing Info", "Please fill in all fields.");
+      return;
+    }
+
+    // Save the user
+    const user = { name, email };
+    await AsyncStorage.setItem("user", JSON.stringify(user));
+
+    navigation.replace('MainTabs');
+  };
 
   return (
     <View style={styles.container}>
@@ -51,10 +65,7 @@ export default function SignUpScreen() {
         onChangeText={setPassword}
       />
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.replace('MainTabs')}
-      >
+      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
         <Text style={styles.buttonText}>Sign Up</Text>
       </TouchableOpacity>
 
@@ -74,7 +85,7 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212', // Dark background
+    backgroundColor: '#121212',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
@@ -97,7 +108,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    backgroundColor: '#4CAF50', // Green button
+    backgroundColor: '#4CAF50',
     borderRadius: 10,
     paddingVertical: 15,
     alignItems: 'center',
