@@ -1,9 +1,19 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+
+import "firebase/compat/auth";
+
 import { RootStackParamList } from '../types';
+import { auth } from "../utils/firebaseConfig";
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SignIn'>;
 
@@ -18,11 +28,16 @@ export default function SignInScreen() {
       return;
     }
 
-    // Save temporary user (fake auth)
-    const user = { name: "User", email };
-    await AsyncStorage.setItem("user", JSON.stringify(user));
+    try {
+      // 🔥 Firebase v9 compat login
+      await auth.signInWithEmailAndPassword(email.trim(), password);
 
-    navigation.replace('MainTabs');
+      // ❗ DO NOT navigate manually
+      // App.tsx handles navigation automatically using onAuthStateChanged
+
+    } catch (error: any) {
+      Alert.alert("Login Error", error.message);
+    }
   };
 
   return (
@@ -62,7 +77,6 @@ export default function SignInScreen() {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {

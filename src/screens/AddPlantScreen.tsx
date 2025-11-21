@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -72,7 +73,6 @@ const persistToAppStorage = async (srcUri: string) => srcUri;
     }
   };
 
-  // 🟢 Save plant with image
   const handleSave = () => {
     if (!name.trim()) {
       Alert.alert('Error', 'Please enter a plant name.');
@@ -98,6 +98,10 @@ const persistToAppStorage = async (srcUri: string) => srcUri;
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Add New Plant</Text>
+
+      <TouchableOpacity onPress={() => navigation.goBack()} style = {{position: 'absolute', top:50, left:20,}}>
+        <Ionicons name = "chevron-back" size={28} color="rgba(205, 204, 204, 1)"/>
+      </TouchableOpacity>
 
       <TextInput
         style={styles.input}
@@ -129,6 +133,7 @@ const persistToAppStorage = async (srcUri: string) => srcUri;
       ) : (
         <Text style={styles.noImageText}>No image selected</Text>
       )}
+
 
       {/* 🟢 Image buttons */}
       <View style={styles.row}>

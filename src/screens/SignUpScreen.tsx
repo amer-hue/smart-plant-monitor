@@ -1,9 +1,11 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import "firebase/compat/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { RootStackParamList } from '../types';
+import { auth, db } from "../utils/firebaseConfig";
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SignUp'>;
 
@@ -20,11 +22,29 @@ export default function SignUpScreen() {
       return;
     }
 
-    // Save the user
-    const user = { name, email };
-    await AsyncStorage.setItem("user", JSON.stringify(user));
+    try {
+      // Create user with Firebase (compat)
+      const userCred = await auth.createUserWithEmailAndPassword(email, password);
+      const uid = userCred.user!.uid;
 
-    navigation.replace('MainTabs');
+      // Create Firestore user document
+      try {
+        console.log("Creating Firestore profile...");
+        await setDoc(doc(db, "users", uid), {
+        uid,
+        name,
+        phone,
+        email,
+        createdAt: serverTimestamp(),
+    });
+      console.log("PROFILE SAVED");
+    } catch (err) {
+      console.log("FIRESTORE ERROR:", err);
+    }
+
+    } catch (error: any) {
+      Alert.alert("Sign Up Error", error.message);
+    }
   };
 
   return (

@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -22,6 +23,9 @@ export default function EditProfileScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Edit Profile</Text>
 
+      <TouchableOpacity onPress={() => navigation.goBack()} style = {{position: 'absolute', top:50, left:20,}}>
+        <Ionicons name = "chevron-back" size={28} color="rgba(205, 204, 204, 1)"/>
+      </TouchableOpacity>
       <TextInput
         style={styles.input}
         value={name}
