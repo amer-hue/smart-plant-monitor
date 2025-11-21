@@ -1,8 +1,6 @@
-import {initializeApp} from "firebase/app";
-import {getFirestore, setDoc, doc} from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCQkQkaxzxSGiasxFnP245nG4IUbmyoeJM",
+  apiKey: "AIzaSyDGOW_TLCnbWy2ZBAQXa3w6OV4h7-buPGA",
   authDomain: "smartplantmonitoringsyst-d8e1c.firebaseapp.com",
   projectId: "smartplantmonitoringsyst-d8e1c",
   storageBucket: "smartplantmonitoringsyst-d8e1c.appspot.com",
@@ -11,21 +9,22 @@ const firebaseConfig = {
   measurementId: "G-N1F4T8180Q",
 };
 //{
-    id: "",
-    name: "",
-    category: "Indoor",
-    image: "",
-    description: "",
-    idealMetrics: {
-      soilMoisture: [30, 50],
-      humidity: [40, 60],
-      temperature: [18, 29], // C°
-      light: [500, 2500]
-    }
-  },
+//    id: "",
+ //   name: "",
+//    category: "Indoor",
+//    image: "",
+//    description: "",
+//    idealMetrics: {
+//      soilMoisture: [30, 50],
+//      humidity: [40, 60],
+//      temperature: [18, 29], // C°
+//      light: [500, 2500]
+ //   }
+ // },
 
 const plantTypes = [
   {
+    //10 indoor plants (succulents =)
     id: "pothos",
     name: "Pothos (Epipremnum aureum)",
     category: "Indoor",
@@ -88,10 +87,10 @@ const plantTypes = [
     image: "https://unsplash.com/photos/green-plant-near-white-window-blinds-E2alKuiCUKY",
     description: "The ZZ plant is a low-maintenance, clump-forming house plant with upright stems with many attractive, glossy leaves.  ‘Black Raven’ ZZ plant is one of the black-foliaged cultivars that is highly coveted. It tolerates a wide range of light conditions, from bright sun to shade. A ZZ plant can reach 3-5’ x 2-3’ at maturity in the house. ",
     idealMetrics: {
-      soilMoisture: [30, 50],
-      humidity: [40, 60],
-      temperature: [18, 29], // C°
-      light: [500, 2500]
+      soilMoisture: [20, 40],
+      humidity: [30, 50],
+      temperature: [18, 30], // C°
+      light: [200, 2000]
     }
   },
 
@@ -102,24 +101,24 @@ const plantTypes = [
     image: "https://unsplash.com/photos/a-close-up-of-a-green-leaf-on-a-plant-Rhgs38xTCk8",
     description: "The philodendron has very large leaves with very lobed and incised leaves which are a dark glossy green. This large-foliaged house plant has gained in popularity due to its impact on complimenting home décor.  It can tolerate low-light conditions.  ‘Shangri-La’ is a new selection which has very textural leaves. It can tolerate bright indirect light to low light conditions.  A warm and humid room will result in luxuriant growth. ",
     idealMetrics: {
-      soilMoisture: [30, 50],
-      humidity: [40, 60],
-      temperature: [18, 29], // C°
-      light: [500, 2500]
+      soilMoisture: [40, 60],
+      humidity: [50, 80],
+      temperature: [18, 30], // C°
+      light: [2000, 10000]
     }
   },
 
   {
-    id: "jadeplant",
-    name: "Jade Plant (Crassula ovata) ",
+    id: "chineseevergreen",
+    name: "Chinese Evergreen (Aglaonema modestum) ",
     category: "Indoor",
-    image: "https://unsplash.com/photos/green-plant-on-white-ceramic-pot-nKyN0Lfy-1w",
-    description: "A popular succulent, the jade plant has thick, oval leaves and a shrub-like appearance. It requires minimal watering and thrives in bright, direct sunlight. This has been a popular houseplant for over 60 years.  Because it is a succulent, it requires very little care to be a very successful houseplant. ",
+    image: "https://unsplash.com/photos/green-plant-obekvwYFdsc",
+    description: "This lush plant features heart-shaped leaves with variegated patterns in shades of green, silver, white, and pink. It tolerates low light conditions and prefers moist, well-drained soil. ",
     idealMetrics: {
-      soilMoisture: [30, 50],
-      humidity: [40, 60],
-      temperature: [18, 29], // C°
-      light: [500, 2500]
+      soilMoisture: [35, 55],
+      humidity: [50, 70],
+      temperature: [18, 27], // C°
+      light: [200, 2500]
     }
   },
 
@@ -130,10 +129,10 @@ const plantTypes = [
     image: "https://unsplash.com/photos/green-leaves-in-white-background-Dze_6fnPIKk",
     description: "A classic houseplant, the rubber plant features large, glossy, leathery leaves and can grow quite tall. It adapts to varying light conditions, making it a versatile choice for any room. This old-fashioned houseplant has stood the test of time. It also makes a great architectural statement in the home. ",
     idealMetrics: {
-      soilMoisture: [30, 50],
+      soilMoisture: [35, 55],
       humidity: [40, 60],
       temperature: [18, 29], // C°
-      light: [500, 2500]
+      light: [2000, 10000]
     }
   },
 
@@ -143,6 +142,90 @@ const plantTypes = [
     category: "Indoor",
     image: "https://unsplash.com/photos/white-flower-with-green-leaves-CDoPIWJDvvw",
     description: "This elegant plant features white flowers amidst dark green foliage. It prefers indirect light and thrives in moist, well-drained soil. The peace lily has been especially popular in office buildings and malls, but increasingly has become a stalwart houseplant due to its durability. It needs indirect to low light conditions, and should dry out completely between waterings. ",
+    idealMetrics: {
+      soilMoisture: [45, 65],
+      humidity: [50, 80],
+      temperature: [18, 27], // C°
+      light: [500, 5000]
+    }
+  },
+
+  {
+    id: "stringofpearls",
+    name: "String-of-Pearls (Senecio rowleyanus) ",
+    category: "Indoor",
+    image: "https://unsplash.com/photos/green-and-brown-rope-with-brown-rope-tRU_e2bsFuI",
+    description: "A succulent with cascading stems of orb-like leaves resembling pearls, the string-of-pearls is a unique and low-maintenance houseplant. It requires full sun and well-drained soil, such as a cactus mix.  ",
+    idealMetrics: {
+      soilMoisture: [15, 30],
+      humidity: [30, 50],
+      temperature: [18, 27], // C°
+      light: [10000, 50000]
+    }
+  },
+
+  {
+    id: "jadeplant",
+    name: "Jade Plant (Crassula ovata) ",
+    category: "Indoor",
+    image: "https://unsplash.com/photos/green-plant-on-white-ceramic-pot-nKyN0Lfy-1w",
+    description: "A popular succulent, the jade plant has thick, oval leaves and a shrub-like appearance. It requires minimal watering and thrives in bright, direct sunlight. This has been a popular houseplant for over 60 years.  Because it is a succulent, it requires very little care to be a very successful houseplant. ",
+    idealMetrics: {
+      soilMoisture: [20, 35],
+      humidity: [30, 50],
+      temperature: [18, 29], // C°
+      light: [10000, 70000]
+    }
+  },
+
+  {
+    id: "aloevera",
+    name: "Aloe Vera (Barbados Aloe)",
+    category: "Indoor",
+    image: "https://unsplash.com/photos/green-plant-in-white-background-q3szjB0Lj8w",
+    description: "https://unsplash.com/photos/green-and-brown-rope-with-brown-rope-tRU_e2bsFuI",
+    idealMetrics: {
+      soilMoisture: [15, 30],
+      humidity: [30, 50],
+      temperature: [18, 32], // C°
+      light: [15000, 70000]
+    }
+  },
+
+  {
+    id: "roseum",
+    name: "Roseum (sedum spurium)",
+    category: "Indoor",
+    image: "",
+    description: "The roseum plant is a low-growing succulent that only gets to be about four to six inches tall. It is a fast grower that works great in containers or planters on a windowsill. In the summer, the roseum develops clusters of light-pink star flowers that can add a pop of color to your home decor.",
+    idealMetrics: {
+      soilMoisture: [10, 25],
+      humidity: [30, 50],
+      temperature: [15, 30], // C°
+      light: [20000, 90000]
+    }
+  },
+
+  {
+    id: "zebracactus",
+    name: "Zebra Cactus (Haworthia fasciata)",
+    category: "Indoor",
+    image: "",
+    description: "The Zebra Haworthia is a compact, low-maintenance succulent that thrives indoors with minimal care. It prefers bright, indirect light and requires infrequent watering, making it ideal for beginners. With its distinctive white-striped leaves, this hardy plant tolerates a variety of conditions, provided the soil is well-draining and not overwatered. It is well-suited for small spaces, making it a popular choice for tabletops, windowsills, and office settings.",
+    idealMetrics: {
+      soilMoisture: [10, 25],
+      humidity: [30, 50],
+      temperature: [18, 27], // C°
+      light: [10000, 50000]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
     idealMetrics: {
       soilMoisture: [30, 50],
       humidity: [40, 60],
@@ -164,5 +247,217 @@ const plantTypes = [
       light: [500, 2500]
     }
   },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  {
+    id: "",
+    name: "",
+    category: "Indoor",
+    image: "",
+    description: "",
+    idealMetrics: {
+      soilMoisture: [30, 50],
+      humidity: [40, 60],
+      temperature: [18, 29], // C°
+      light: [500, 2500]
+    }
+  },
+
+  
   // Add the other 39 plants here…
 ];
