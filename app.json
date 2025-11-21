@@ -28,8 +28,6 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.plantmonitor"
-      /* NOTE: expo-image-picker handles Android permissions automatically.
-         You usually don't need to add CAMERA/READ/WRITE here. */
     },
 
     "web": {

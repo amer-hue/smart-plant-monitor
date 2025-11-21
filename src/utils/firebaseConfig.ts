@@ -6,7 +6,7 @@ import "firebase/compat/storage";
 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCQkQkaxzxSGiasxFnP245nG4IUbmyoeJM",
+  apiKey: "AIzaSyDGOW_TLCnbWy2ZBAQXa3w6OV4h7-buPGA",
   authDomain: "smartplantmonitoringsyst-d8e1c.firebaseapp.com",
   projectId: "smartplantmonitoringsyst-d8e1c",
   storageBucket: "smartplantmonitoringsyst-d8e1c.appspot.com",
