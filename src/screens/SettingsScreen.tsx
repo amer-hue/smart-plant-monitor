@@ -1,5 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
+import { FirebaseOptions } from "firebase/app";
 import React, { useState } from "react";
 import {
   Alert,
@@ -12,17 +13,25 @@ import {
 import { usePlantStore } from "../state/context";
 import { RootStackParamList } from "../types";
 
+
+import { signOut } from "firebase/auth";
+import { auth } from "../utils/firebaseConfig";
+
 type NavProp = StackNavigationProp<RootStackParamList, "Settings">;
 
 export default function SettingsScreen() {
   const navigation = useNavigation<NavProp>();
-
+  
   const {
-    state: { isFahrenheit, user },
+    state: { isFahrenheit },
     dispatch,
   } = usePlantStore();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  const currentUser = auth.currentUser;
+  const opts = auth.app.options as FirebaseOptions;
+  console.log("AUTH INSTANCE PROJECT ID:", opts.projectId);
 
   const toggleTempUnit = () => {
     dispatch({ type: "TOGGLE_TEMP_UNIT" });
@@ -31,14 +40,31 @@ export default function SettingsScreen() {
   const handleAbout = () => {
     Alert.alert(
       "About",
-      "Smart Plant Monitor\nVersion 1.0.0\n\nMonitor your plants with temperature, moisture, and light readings."
+      "Smart Plant Monitor\nVersion 1.0.0\nMonitor your plants with temperature, moisture, and light readings."
     );
   };
 
   const handleLogout = () => {
-    Alert.alert("Logout", "This is a demo — no backend connected yet.", [
-      { text: "OK" },
-    ]);
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to log out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await signOut(auth);     // ← CORRECT V9 LOGOUT
+              console.log("User logged out");
+            } catch (error: any) {
+              console.log("Logout error:", error.message);
+              Alert.alert("Logout Error", error.message);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -48,10 +74,13 @@ export default function SettingsScreen() {
       {/* Profile card */}
       <View style={styles.profileCard}>
         <Text style={styles.profileIcon}>👤</Text>
-        <Text style={styles.profileName}>{user?.name || "Guest User"}</Text>
-        <Text style={styles.profileEmail}>{user?.email || "No email"}</Text>
+        <Text style={styles.profileName}>
+          {currentUser?.displayName || "User"}
+        </Text>
+        <Text style={styles.profileEmail}>
+          {currentUser?.email || "No email"}
+        </Text>
 
-        {/* Edit Profile Button */}
         <TouchableOpacity
           style={styles.editButton}
           onPress={() => navigation.navigate("EditProfile")}
@@ -96,13 +125,8 @@ export default function SettingsScreen() {
   );
 }
 
-// Styles
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#000",
-    padding: 20,
-  },
+  container: { flex: 1, backgroundColor: "#000", padding: 20 },
   title: {
     fontSize: 26,
     fontWeight: "700",
@@ -120,20 +144,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#333",
   },
-  profileIcon: {
-    fontSize: 42,
-    marginBottom: 10,
-  },
-  profileName: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  profileEmail: {
-    fontSize: 14,
-    color: "#aaa",
-    marginBottom: 10,
-  },
+  profileIcon: { fontSize: 42, marginBottom: 10 },
+  profileName: { fontSize: 18, fontWeight: "700", color: "#fff" },
+  profileEmail: { fontSize: 14, color: "#aaa", marginBottom: 10 },
   editButton: {
     marginTop: 8,
     paddingVertical: 6,
@@ -141,10 +154,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#4CAF50",
     borderRadius: 12,
   },
-  editButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
+  editButtonText: { color: "#fff", fontWeight: "600" },
   settingRow: {
     backgroundColor: "#1E1E1E",
     borderRadius: 14,
@@ -157,10 +167,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#333",
   },
-  settingLabel: {
-    color: "#fff",
-    fontSize: 16,
-  },
+  settingLabel: { color: "#fff", fontSize: 16 },
   button: {
     backgroundColor: "#4CAF50",
     paddingVertical: 16,
@@ -168,17 +175,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 16,
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  logoutButton: {
-    backgroundColor: "#D32F2F",
-  },
-  logoutText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "600",
-  },
+  buttonText: { color: "#fff", fontSize: 17, fontWeight: "600" },
+  logoutButton: { backgroundColor: "#D32F2F" },
+  logoutText: { color: "#fff", fontSize: 17, fontWeight: "600" },
 });

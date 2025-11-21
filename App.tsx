@@ -1,6 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import React from 'react';
+import { FirebaseOptions } from "firebase/app";
+import React, { useEffect, useState } from 'react';
 import 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -20,81 +21,66 @@ import TabNavigator from './src/navigation/TabNavigator';
 import { colors } from './src/theme/colors';
 import { RootStackParamList } from './src/types';
 
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./src/utils/firebaseConfig";
+
+
+
 const Stack = createStackNavigator<RootStackParamList>();
 
 const App = () => {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  console.log("Firebase here?:", auth);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log("Auth state succesfully changed:", firebaseUser);
+      console.log("AUTH STATE CHANGED. CURRENT USER =", firebaseUser);
+      const opts = auth.app.options as FirebaseOptions;
+      console.log("AUTH INSTANCE PROJECT ID:", opts.projectId);
+
+      setUser(firebaseUser);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  if (loading) return null;
+
   return (
     <SafeAreaProvider>
       <PlantProvider>
         <NavigationContainer>
           <Stack.Navigator
-            initialRouteName="SignIn"
             screenOptions={{
-              headerStyle: { backgroundColor: colors.surface },
-              headerTintColor: colors.primary,
-              cardStyle: { backgroundColor: colors.background },
-            }}
-          >
-
-            {/* 🔐 AUTH */}
-            <Stack.Screen
-              name="SignIn"
-              component={SignInScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="SignUp"
-              component={SignUpScreen}
-              options={{ headerShown: false }}
-            />
-
-            {/* 🧭 MAIN TABS */}
-            <Stack.Screen
-              name="MainTabs"
-              component={TabNavigator}
-              options={{ headerShown: false }}
-            />
-
-            {/* NEW: Edit Profile */}
-            <Stack.Screen
-              name="EditProfile"
-              component={EditProfileScreen}
-              options={{ title: "Edit Profile" }}
-            />
-
-            {/* 🌱 PLANT SCREENS */}
-            <Stack.Screen
-              name="AddPlant"
-              component={AddPlantScreen}
-              options={{ title: "Add Plant" }}
-            />
-
-            <Stack.Screen
-              name="PlantDetail"
-              component={PlantDetailScreen}
-              options={{ title: "Plant Details" }}
-            />
-
-            <Stack.Screen
-              name="Statistics"
-              component={StatisticsScreen}
-              options={{ title: "Statistics" }}
-            />
-
-            {/* ⚙️ SETTINGS & SCAN */}
-            <Stack.Screen
-              name="Scan"
-              component={ScanScreen}
-              options={{ title: "Find Sensor" }}
-            />
-
-            <Stack.Screen
-              name="Settings"
-              component={SettingsScreen}
-              options={{ title: "Settings" }}
-            />
-
+            headerStyle: { backgroundColor: colors.surface },
+            headerTintColor: colors.primary,
+            cardStyle: { backgroundColor: colors.background },
+            headerShown: false,
+          }}
+        >
+          {user ? (
+            <>
+              {/* LOGGED IN */}
+              <Stack.Screen name="MainTabs" component={TabNavigator} />
+              <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+              <Stack.Screen name="AddPlant" component={AddPlantScreen} />
+              <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
+              <Stack.Screen name="Statistics" component={StatisticsScreen} />
+              <Stack.Screen name="Scan" component={ScanScreen} />
+              <Stack.Screen name="Settings" component={SettingsScreen} />
+            </>
+        ) : (
+            <>
+              {/* LOGGED OUT */}
+              <Stack.Screen name="SignIn" component={SignInScreen} />
+              <Stack.Screen name="SignUp" component={SignUpScreen} />
+            </>
+          )}
           </Stack.Navigator>
+
         </NavigationContainer>
       </PlantProvider>
     </SafeAreaProvider>
