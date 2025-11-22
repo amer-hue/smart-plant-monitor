@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PlantProvider } from './src/state/context';
 
 import AddPlantScreen from './src/screens/AddPlantScreen';
+import AllPlantsScreen from './src/screens/AllPlantsScreen';
 import PlantDetailScreen from './src/screens/PlantDetailScreen';
 import ScanScreen from './src/screens/ScanScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -71,6 +72,7 @@ const App = () => {
               <Stack.Screen name="Statistics" component={StatisticsScreen} />
               <Stack.Screen name="Scan" component={ScanScreen} />
               <Stack.Screen name="Settings" component={SettingsScreen} />
+              <Stack.Screen name = "AllPlants" component={AllPlantsScreen} />
             </>
         ) : (
             <>

@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Image,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
@@ -16,9 +17,13 @@ import * as Crypto from 'expo-crypto';
 import * as ImagePicker from 'expo-image-picker';
 
 import { usePlantStore } from '../state/context';
-import { Plant, RootStackParamList } from '../types';
+import { PlantType, RootStackParamList } from '../types';
+
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../utils/firebaseConfig";
 
 type NavProp = StackNavigationProp<RootStackParamList, 'AddPlant'>;
+
 
 export default function AddPlantScreen() {
   const navigation = useNavigation<NavProp>();
@@ -28,6 +33,23 @@ export default function AddPlantScreen() {
   const [type, setType] = useState('');
   const [location, setLocation] = useState('');
   const [imageUri, setImageUri] = useState<string | undefined>(); // 🟢 Added
+  
+  const [allPlants, setAllPlantTypes] = useState<PlantType[]>([]);
+  const[filteredPlantTypes, setFilteredPlantTypes] = useState<PlantType[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    const loadPlantTypes = async() => {
+      try{
+        const snap = await getDocs(collection(db, "plantTypes"));
+        const list: PlantType[] = snap.docs.map(doc => doc.data() as PlantType);
+        setAllPlantTypes(list);
+      }catch(err){
+        console.log("Error while loading plants: ", err);
+      }
+    };
+    loadPlantTypes();
+  }, []);
 
  // temporary bypass while simulator storage is broken
 const persistToAppStorage = async (srcUri: string) => srcUri;
@@ -90,9 +112,7 @@ const persistToAppStorage = async (srcUri: string) => srcUri;
 
     addPlant(newPlant);
 
-    navigation.navigate('MainTabs', {
-      screen: 'MyPlants',
-    });
+    navigation.navigate('MyPlants');
   };
 
   return (
@@ -110,14 +130,61 @@ const persistToAppStorage = async (srcUri: string) => srcUri;
         value={name}
         onChangeText={setName}
       />
-
+      <View style = {{marginBottom: 15}}>
+        <View style = {{flexDirection: "row", alignItems: "center"}}>
       <TextInput
         style={styles.input}
-        placeholder="Plant Type (optional)"
+        placeholder="Plant Type"
         placeholderTextColor="#888"
         value={type}
-        onChangeText={setType}
+        onChangeText={(text) => {
+          setType(text);
+
+          if(text.length === 0){
+            setShowDropdown(false);
+            setFilteredPlantTypes([]);
+            return;
+          }
+
+          const matches = allPlants.filter((p) => 
+          p && p.name && p.name.toLowerCase().includes(text.toLowerCase())
+        );
+
+        setFilteredPlantTypes(matches);
+        setShowDropdown(matches.length > 0);
+        }}
       />
+
+      <TouchableOpacity
+        onPress={() => navigation.navigate("AllPlants")}
+        style={{
+          marginLeft:10,
+          backgroundColor: "#4CAF50",
+          paddingVertical: 12,
+          paddingHorizontal: 15,
+          borderRadius: 10,
+        }}
+        >
+          <Text style = {{color: "#fff", fontWeight: "600"}}>View All</Text>
+      </TouchableOpacity>
+      </View>
+        {showDropdown && (
+          <ScrollView style = {styles.dropdown}>
+            {filteredPlantTypes.map((p, idx) => (
+              <TouchableOpacity
+                key = {idx}
+                style = {styles.dropdownItem}
+                onPress={() => {
+                  setType(p.name);
+                  setShowDropdown(false);
+                }}
+                >
+                  <Text style = {{color:"white"}}>{p.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+      </View>
 
       <TextInput
         style={styles.input}
@@ -177,6 +244,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     marginBottom: 15,
+  },
+  dropdown: {
+    maxHeight: 180,
+    backgroundColor: "#1E1E1E",
+    borderColor: "#333",
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  dropdownItem: {
+    padding: 12,
+    borderBottomColor: "#333",
+    borderBottomWidth: 1
   },
   button: {
     backgroundColor: '#4CAF50',

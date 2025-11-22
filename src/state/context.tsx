@@ -1,18 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
-import { Plant, Reading } from '../types';
+import { PlantType, Reading } from '../types';
 
 type State = {
-  plants: Plant[];
+  plants: PlantType[];
   isFahrenheit: boolean;
 };
 
 type Action =
-  | { type: 'ADD_PLANT'; payload: Plant }
-  | { type: 'UPDATE_PLANT'; payload: Plant }
+  | { type: 'ADD_PLANT'; payload: PlantType }
+  | { type: 'UPDATE_PLANT'; payload: PlantType }
   | { type: 'REMOVE_PLANT'; payload: string }
   | { type: 'TOGGLE_TEMP_UNIT' }
-  | { type: 'SET_PLANTS'; payload: Plant[] }
+  | { type: 'SET_PLANTS'; payload: PlantType[] }
   | { type: 'UPDATE_READING'; payload: { plantId: string; reading: Reading } };
 
 const initialState: State = {
