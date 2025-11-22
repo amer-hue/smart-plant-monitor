@@ -5,26 +5,29 @@ export type Reading = {
   ts: number;
 };
 
-export type Plant = {
-  id: string;
-  name: string;
-  type?: string;
-  location?: string;
-  deviceId?: string;
-  imageUri?: string;
-  last?: {
-    tempC?: number;
-    moisture?: number;
-    light?: number;
+export type PlantType ={
+  id:string,
+  name:string,
+  category:string,
+  image: string,
+  description:string,
+  idealMetrics: {
+    soilMoisture: number[];
+    humidity: number[];
+    temperature: number[];
+    light: number[];
   };
 };
+
 
 // Add EditProfile route
 export type RootStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
 
-  MainTabs: undefined;
+  MainTabs: {
+    screen?: 'Dashboard' | 'MyPlants' | 'Scan' | 'Settings';
+  };
 
   Dashboard: undefined;
   MyPlants: undefined;
@@ -32,9 +35,9 @@ export type RootStackParamList = {
   Settings: undefined;
 
   AddPlant: undefined;
+  AllPlants: undefined;
   PlantDetail: { plantId: string };
   Statistics: { plantId: string };
 
-  // NEW SCREEN
   EditProfile: undefined;
 };
