@@ -12,10 +12,11 @@ import {
   View,
 } from 'react-native';
 
-import { usePlantStore } from '../state/context';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../types';
 import { formatTemperature, getLightLevel } from '../utils/helpers';
+
+import { auth, db } from "../utils/firebaseConfig";
 
 type DetailRouteProp = RouteProp<RootStackParamList, 'PlantDetail'>;
 type NavProp = StackNavigationProp<RootStackParamList, 'PlantDetail'>;
@@ -24,30 +25,46 @@ const PlantDetailScreen = () => {
   const route = useRoute<DetailRouteProp>();
   const navigation = useNavigation<NavProp>();
 
-  const {
-    state: { plants, isFahrenheit },
-    updatePlant,
-    dispatch,
-    refreshReading, 
-  } = usePlantStore();
+  const plantId = route.params.plantId;
+  const uid = auth.currentUser?.uid;
 
-  const plant = plants.find(p => p.id === route.params.plantId);
+  const [plant, setPlant] = useState<any>(null);
+  const [isFahrenheit, setIsFahrenheit] = useState(false);
 
-  const [localImageUri, setLocalImageUri] = useState<string | undefined>(
-    plant?.imageUri,
-  );
+  useEffect(() =>{
+    if (!uid) return;
+    const unsubscribe = db 
+      .collection("users")
+      .doc(uid)
+      .onSnapshot((doc) => {
+        if(doc.exists && doc.data()?.isFahrenheit !== undefined){
+          setIsFahrenheit(doc.data()?.isFahrenheit);
+        }
+      });
+      return () => unsubscribe();
+  }, []);
+
+  useEffect(() =>{
+    if(!uid) return;
+
+    const unsubscribe = db 
+      .collection("users")
+      .doc(uid)
+      .collection("plants")
+      .doc(plantId)
+      .onSnapshot((doc) => {
+        if(doc.exists){
+          setPlant({id: doc.id, ...doc.data()});
+        }
+      });
+      return () => unsubscribe();
+  }, [plantId]);
+
+  
 
   // 🔁 Auto-refresh readings every 5 seconds while on this screen
   // 🔁 Auto-refresh readings every 5 seconds while this screen is open
-  useEffect(() => {
-    const plantId = route.params.plantId;
-
-    const intervalId = setInterval(() => {
-      refreshReading(plantId);
-    }, 5000); // 5 seconds
-
-    return () => clearInterval(intervalId);
-  }, [route.params.plantId, refreshReading]);
+  
 
   const handleChangePhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -58,21 +75,25 @@ const PlantDetailScreen = () => {
 
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
     });
 
     if (!res.canceled) {
       const uri = res.assets[0].uri;
-      setLocalImageUri(uri);
-      updatePlant({ ...plant, imageUri: uri });
+      
+      await db
+        .collection("users")
+        .doc(uid)
+        .collection("plants")
+        .doc(plantId)
+        .update({
+          imageUri: uri,
+        });
+        setPlant((prev:any) => ({...prev, imageUri: uri}));
     }
   };
 
-  const handleViewStatistics = () => {
-    navigation.navigate('Statistics', { plantId: plant.id });
-  };
 
   const handleDelete = () => {
     Alert.alert('Delete Plant', 'Are you sure you want to delete this plant?', [
@@ -80,21 +101,44 @@ const PlantDetailScreen = () => {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          dispatch({ type: 'REMOVE_PLANT', payload: plant.id });
+        onPress: async () => {
+          await db
+            .collection("users")
+            .doc(uid)
+            .collection("plants")
+            .doc(plantId)
+            .delete();
+
           navigation.goBack();
         },
       },
     ]);
   };
 
+  if (plant === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#121212" }}>
+        <Text style={{ color: "#fff" }}>Loading plant...</Text>
+      </View>
+    );
+    }
+
+  if (!plant) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#121212" }}>
+        <Text style={{ color: "#fff" }}>Plant not found</Text>
+      </View>
+    );
+  }
+
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Image + small "Change" button overlay */}
       <View style={styles.imageWrapper}>
-        {localImageUri ? (
+        {plant.imageUri ? (
           <Image
-            source={{ uri: localImageUri }}
+            source={{ uri: plant.imageUri }}
             style={styles.image}
             resizeMode="cover"
           />
@@ -123,6 +167,10 @@ const PlantDetailScreen = () => {
             : '--°C'}
         </Text>
         <Text style={styles.rowText}>
+          Humidity:{' '}
+          
+        </Text>
+        <Text style={styles.rowText}>
           💧 Moisture: {plant.last ? `${plant.last.moisture}%` : '--%'}
         </Text>
         <Text style={styles.rowText}>
@@ -131,7 +179,7 @@ const PlantDetailScreen = () => {
         </Text>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleViewStatistics}>
+      <TouchableOpacity style={styles.button}>
         <Text style={styles.buttonText}>View Statistics</Text>
       </TouchableOpacity>
 
