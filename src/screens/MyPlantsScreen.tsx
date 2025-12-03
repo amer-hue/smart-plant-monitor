@@ -1,3 +1,4 @@
+// src/screens/MyPlantsScreen.tsx
 import { StackScreenProps } from "@react-navigation/stack";
 import React, { useEffect, useState } from "react";
 import {
@@ -9,26 +10,23 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { usePlantStore } from "../state/context";
-import { PlantType, RootStackParamList } from "../types"; // 👈 Plant type
-import { auth, db } from "../utils/firebaseConfig";
 
 import AddPlantCard from "../components/AddPlantCard";
+import { usePlantStore } from "../state/context";
+import { PlantType, RootStackParamList } from "../types";
+import { auth, db } from "../utils/firebaseConfig";
 
-
-//type NavProp = StackNavigationProp<RootStackParamList, "MyPlants">;
 type Props = StackScreenProps<RootStackParamList, "MyPlants">;
 
-export default function MyPlantsScreen({route, navigation}: Props) {
-  //const navigation = useNavigation<NavProp>();
-  //const route = useRoute();
+export default function MyPlantsScreen({ route, navigation }: Props) {
   const returnedPlant = (route.params as any)?.selectedPlant ?? null;
   const { state, dispatch } = usePlantStore();
-  const[isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
+  // Subscribe to this user's plants in Firestore and store them in context
   useEffect(() => {
     const uid = auth.currentUser?.uid;
-    if(!uid) return;
+    if (!uid) return;
 
     const unsubscribe = db
       .collection("users")
@@ -41,77 +39,77 @@ export default function MyPlantsScreen({route, navigation}: Props) {
           ...doc.data(),
         })) as PlantType[];
 
-        dispatch({type: "SET_PLANTS", payload: plants})
+        dispatch({ type: "SET_PLANTS", payload: plants });
       });
-      return unsubscribe;
-  })
+
+    return unsubscribe;
+  }, [dispatch]);
+
+  // If we navigated here with a selectedPlant (from AddPlant flow), open the card
   useEffect(() => {
-    if(route.params?.selectedPlant){
+    if (route.params?.selectedPlant) {
       setIsExpanded(true);
     }
   }, [route.params]);
 
   const handleDelete = (id: string) => {
-    Alert.alert(
-      "Delete Plant",
-      "Are you sure you want to delete this plant?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => db
-                          .collection("users")
-                          .doc(auth.currentUser?.uid)
-                          .collection("plants")
-                          .doc(id)
-                          .delete(),
-        },
-      ]
-    );
+    Alert.alert("Delete Plant", "Are you sure you want to delete this plant?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () =>
+          db
+            .collection("users")
+            .doc(auth.currentUser?.uid)
+            .collection("plants")
+            .doc(id)
+            .delete(),
+      },
+    ]);
   };
 
-  // 👇 use Plant type and include small image inside the card
-  const renderPlant = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate("PlantDetail", { plantId: item.id })}
-      onLongPress={() => handleDelete(item.id)}
-    >
-      {/* top row: text + small thumbnail */}
-      <View style={styles.topRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.plantName}>🌱 {item.customName}</Text>
-          <Text style={styles.location}>
-            📍 {item.location || "Unknown location"}
-          </Text>
+  const renderPlant = ({ item }: { item: PlantType }) => {
+    const last = (item as any).last; // last reading, if your backend writes it
+    const moisture = last?.moisture ?? "--";
+    const tempC = last?.tempC ?? "--";
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigation.navigate("PlantDetail", { plantId: item.id })}
+        onLongPress={() => handleDelete(item.id)}
+      >
+        {/* top row: text + small thumbnail */}
+        <View style={styles.topRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.plantName}>🌱 {item.customName || item.name}</Text>
+            <Text style={styles.location}>
+              📍 {(item as any).location || "Unknown location"}
+            </Text>
+          </View>
+
+          {(item as any).imageUri && (
+            <Image
+              source={{ uri: (item as any).imageUri }}
+              style={styles.thumb}
+              resizeMode="cover"
+            />
+          )}
         </View>
 
-        {item.imageUri && (
-          <Image
-            source={{ uri: item.imageUri }}
-            style={styles.thumb}
-            resizeMode="cover"
-          />
-        )}
-      </View>
-
-      {/* stats */}
-      <View style={styles.statRow}>
-        <Text style={styles.statText}>
-          💧 {item.last?.moisture ?? "--"}%
-        </Text>
-        <Text style={styles.statText}>
-          🌡 {item.last?.tempC ?? "--"}°C
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+        {/* stats */}
+        <View style={styles.statRow}>
+          <Text style={styles.statText}>💧 {moisture}%</Text>
+          <Text style={styles.statText}>🌡 {tempC}°C</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>My Plants</Text>
-
 
       <FlatList
         data={state.plants}
@@ -122,19 +120,24 @@ export default function MyPlantsScreen({route, navigation}: Props) {
         ListEmptyComponent={
           <Text style={styles.empty}>No plants yet. Add one!</Text>
         }
-        contentContainerStyle={{paddingBottom: 120}}
+        contentContainerStyle={{ paddingBottom: 120 }}
       />
-        {isExpanded && 
-      (<AddPlantCard onClose ={() => setIsExpanded(false)}
-        selectedPlant = {returnedPlant}/>)}
-        {!isExpanded && (
-          <TouchableOpacity 
-          style = {styles.addButton}
+
+      {isExpanded && (
+        <AddPlantCard
+          onClose={() => setIsExpanded(false)}
+          selectedPlant={returnedPlant}
+        />
+      )}
+
+      {!isExpanded && (
+        <TouchableOpacity
+          style={styles.addButton}
           onPress={() => setIsExpanded(true)}
-          >
-            <Text style = {styles.addButtonText}>Add New Plant</Text>
-          </TouchableOpacity>
-        )}
+        >
+          <Text style={styles.addButtonText}>Add New Plant</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -172,7 +175,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
-  // small thumbnail
   thumb: {
     width: 34,
     height: 34,

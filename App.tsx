@@ -1,9 +1,11 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { Buffer } from 'buffer';
 import { FirebaseOptions } from "firebase/app";
 import React, { useEffect, useState } from 'react';
 import 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+(global as any).Buffer = Buffer;
 
 import { PlantProvider } from './src/state/context';
 

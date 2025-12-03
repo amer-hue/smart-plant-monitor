@@ -1,61 +1,67 @@
-import React from "react";
+// src/screens/DashboardScreen.tsx
+import React, { useEffect, useState } from "react";
 import {
   Image,
   ScrollView,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
+
 import BananaImage from "../assets/banana.png";
+import { auth, db } from "../utils/firebaseConfig";
 import {
   formatTemperature,
   generateCareReminder,
-  getLightLevel
+  getLightLevel,
 } from "../utils/helpers";
-
-import { useEffect, useState } from "react";
-import { auth, db } from "../utils/firebaseConfig";
 
 export default function DashboardScreen() {
   const [userName, setUserName] = useState("User");
-  const [plants, setPlants] = useState<any>([]);
-  const [isFahrenheit, setIsFahrenheit] =useState(false);
+  const [plants, setPlants] = useState<any[]>([]);
+  const [isFahrenheit, setIsFahrenheit] = useState(false);
 
+  // Load user name + temperature preference
   useEffect(() => {
     const uid = auth.currentUser?.uid;
-    if(!uid) return;
+    if (!uid) return;
 
     db.collection("users")
       .doc(uid)
       .get()
       .then((doc) => {
-        if(doc.exists && doc.data()?.name) {
-          setUserName(doc.data()?.name);
+        if (doc.exists) {
+          const data = doc.data() || {};
+          if (data.name) setUserName(data.name);
+          if (data.isFahrenheit !== undefined) {
+            setIsFahrenheit(data.isFahrenheit);
+          }
         }
       });
-      }, []);
+  }, []);
 
-    useEffect(() => {
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
+  // Subscribe to plants list
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
 
-      const unsubscribe = db  
-                            .collection("users")
-                            .doc(uid)
-                            .collection("plants")
-                            .orderBy("createdAt")
-                            .onSnapshot((snap => {
-                              const list = snap.docs.map((doc) => ({
-                                id: doc.id,
-                                ...doc.data(),
-                              }));
-                              setPlants(list);
-                            }));
-                            return unsubscribe;
-    }, []);
-  
+    const unsubscribe = db
+      .collection("users")
+      .doc(uid)
+      .collection("plants")
+      .orderBy("createdAt")
+      .onSnapshot((snap) => {
+        const list = snap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setPlants(list);
+      });
 
-  // Dummy notification data
+    return unsubscribe;
+  }, []);
+
+  // Dummy notification data (can be replaced by real events later)
   const notifications: Record<string, string> = {
     "testing-two-id": "Moisture dropped from 60% → 55% (5 minutes ago)",
     "plant-two-id": "Low light detected (2 hours ago)",
@@ -71,9 +77,7 @@ export default function DashboardScreen() {
       )}
 
       {plants.map((plant) => {
-        const imageSource = plant.imageUri
-          ? { uri: plant.imageUri }
-          : BananaImage;
+        const imageSource = plant.imageUri ? { uri: plant.imageUri } : BananaImage;
 
         const temp = plant.last?.tempC
           ? formatTemperature(plant.last.tempC, isFahrenheit)
@@ -100,7 +104,9 @@ export default function DashboardScreen() {
 
         return (
           <View key={plant.id} style={styles.card}>
-            <Text style={styles.plantName}>🪴 {plant.customName}</Text>
+            <Text style={styles.plantName}>
+              🪴 {plant.customName || plant.name}
+            </Text>
 
             <Image source={imageSource} style={styles.image} />
 
@@ -120,7 +126,7 @@ export default function DashboardScreen() {
             <Text style={styles.noteTitle}>Last update:</Text>
             <Text style={styles.note}>{note}</Text>
 
-            {/* CARE REMINDER (NEW) */}
+            {/* CARE REMINDER */}
             <Text style={styles.careTitle}>Care Reminder:</Text>
             <Text style={styles.careText}>
               {generateCareReminder(plant.last)}
@@ -200,8 +206,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 10,
   },
-
-  // CARE REMINDER (added)
   careTitle: {
     color: "#4CAF50",
     marginTop: 8,

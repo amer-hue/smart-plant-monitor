@@ -22,6 +22,9 @@ import { RootStackParamList } from '../types';
 
 type Device = { id: string; name: string; rssi: number };
 
+// 👇 change this if your board name ever changes
+const TARGET_NAME_KEYWORDS = ['SPMS']; // e.g. ['SPMS', 'Plant']
+
 const ScanScreen = () => {
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -58,35 +61,63 @@ const ScanScreen = () => {
       cancelled = true;
       try {
         bleManager.stopDeviceScan();
-      } catch {}
+      } catch {
+        // ignore
+      }
     };
   }, []);
 
   const startScan = async () => {
+    console.log('[Scan] Starting scan…');
+
+    const granted = await requestBluetoothPermissions();
+    if (!granted) {
+      Alert.alert(
+        'Bluetooth Required',
+        'Bluetooth permission is required to scan for plant sensors. Please enable it in Settings > Privacy & Security > Bluetooth.'
+      );
+      return;
+    }
+
     setDevices([]);
     setIsScanning(true);
 
     // Stop any previous scan
     try {
       bleManager.stopDeviceScan();
-    } catch {}
+    } catch {
+      // ignore
+    }
 
     bleManager.startDeviceScan(null, null, (error, device) => {
       if (error) {
-        console.log('Scan error:', error);
+        console.log('[Scan] Scan error:', error);
         Alert.alert('Error', 'Bluetooth scan failed.');
         setIsScanning(false);
         try {
           bleManager.stopDeviceScan();
-        } catch {}
+        } catch {
+          // ignore
+        }
         return;
       }
 
       if (!device || !device.id) return;
 
+      const name = device.name ?? '';
+
+      // 🔍 Filter: only keep devices whose name matches our board
+      const matchesTarget =
+        name.length > 0 &&
+        TARGET_NAME_KEYWORDS.some((kw) => name.toLowerCase().includes(kw.toLowerCase()));
+
+      if (!matchesTarget) {
+        // Ignore random "Unknown Device" things
+        return;
+      }
+
       setDevices((prev) => {
         const rssi = device.rssi ?? 0;
-        const name = device.name ?? 'Unknown Device';
 
         const existingIndex = prev.findIndex((d) => d.id === device.id);
         const updatedDevice: Device = { id: device.id, name, rssi };
@@ -103,25 +134,24 @@ const ScanScreen = () => {
 
     // Auto-stop scan after 10 seconds
     setTimeout(() => {
+      console.log('[Scan] Auto-stopping scan');
       try {
         bleManager.stopDeviceScan();
-      } catch {}
-      setIsScanning(false);
-
-      if (devices.length === 0) {
-        Alert.alert(
-          'No devices found',
-          'Make sure your sensor is powered on and nearby.'
-        );
+      } catch {
+        // ignore
       }
+      setIsScanning(false);
     }, 10000);
   };
 
   const handleDevicePress = (device: Device) => {
-    // stop scanning once user picks a device
+    console.log('[Scan] Device tapped:', device);
+
     try {
       bleManager.stopDeviceScan();
-    } catch {}
+    } catch {
+      // ignore
+    }
     setIsScanning(false);
 
     Alert.alert(
@@ -131,6 +161,7 @@ const ScanScreen = () => {
         ...plants.map((p) => ({
           text: p.name,
           onPress: async () => {
+            console.log('[Scan] Pairing existing plant', p.id, 'to', device.id);
             await pairDevice(p.id, device.id);
             await refreshReading(p.id);
             navigation.goBack();
@@ -140,6 +171,12 @@ const ScanScreen = () => {
           text: 'Create New Plant',
           onPress: async () => {
             const newPlantId = Crypto.randomUUID();
+            console.log(
+              '[Scan] Creating new plant',
+              newPlantId,
+              'for device',
+              device.id
+            );
             dispatch({
               type: 'ADD_PLANT',
               payload: { id: newPlantId, name: `New Plant ${plants.length + 1}` },
@@ -178,7 +215,7 @@ const ScanScreen = () => {
 
       {devices.length === 0 && !isScanning ? (
         <EmptyState
-          message="No devices found nearby."
+          message="No plant sensors found nearby."
           ctaText="Scan Again"
           onCtaPress={startScan}
         />

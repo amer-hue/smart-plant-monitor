@@ -1,60 +1,88 @@
-import { Reading } from '../types';
+// src/ble/client.ts
+import { bleManager } from "./BLE";
 
-export type MockDevice = {
-  id: string;
-  name: string;
-  rssi: number;
-};
+const SERVICE_UUID = "1234567A-1234-5678-1234-56789ABCDEF0";
+const WRITE_UUID   = "1234567A-1234-5678-1234-56789ABCDEF1";
+const NOTIFY_UUID  = "1234567A-1234-5678-1234-56789ABCDEF2";
 
-const mockDevices: MockDevice[] = [
-  { id: 'mock-ble-1', name: 'PlantSensor-A', rssi: -50 },
-  { id: 'mock-ble-2', name: 'PlantSensor-B', rssi: -70 },
-];
+function toLittleEndianInt32(value: number): number[] {
+  const buffer = new ArrayBuffer(4);
+  const view = new DataView(buffer);
+  view.setInt32(0, value, true); // little endian
+  return Array.from(new Uint8Array(buffer));
+}
 
 export const BLEClient = {
-  /**
-   * startScan
-   * - Works with: BLEClient.startScan(device => { ... })
-   * - AND:       const list = await BLEClient.startScan()
-   */
-  startScan: async (
-    onDevice?: (device: MockDevice) => void
-  ): Promise<MockDevice[]> => {
-    console.log('Mock BLE scan started...');
-    await new Promise(resolve => setTimeout(resolve, 500));
+  async connect(deviceId: string) {
+    const device = await bleManager.connectToDevice(deviceId);
+    await device.discoverAllServicesAndCharacteristics();
+    return device;
+  },
 
-    if (onDevice) {
-      mockDevices.forEach(d => onDevice(d));
+  /** SEND PLANT PROFILE (8 x int32) */
+  async sendPlantProfile(
+    deviceId: string,
+    profile: {
+      tempMin: number;       // °C
+      tempMax: number;       // °C
+      rhMin: number;         // %
+      rhMax: number;         // %
+      moistureMin: number;   // mV
+      moistureMax: number;   // mV
+      luxMin: number;
+      luxMax: number;
     }
+  ) {
+    console.log("[BLE] Sending plant profile:", profile);
 
-    return mockDevices;
+    const device = await this.connect(deviceId);
+
+    // Build the 32-byte payload:
+    const payload: number[] = [
+      ...toLittleEndianInt32(profile.tempMin * 100),
+      ...toLittleEndianInt32(profile.tempMax * 100),
+      ...toLittleEndianInt32(profile.rhMin * 100),
+      ...toLittleEndianInt32(profile.rhMax * 100),
+      ...toLittleEndianInt32(profile.moistureMin),
+      ...toLittleEndianInt32(profile.moistureMax),
+      ...toLittleEndianInt32(profile.luxMin),
+      ...toLittleEndianInt32(profile.luxMax),
+    ];
+
+    const base64Payload = Buffer.from(payload).toString("base64");
+
+    await device.writeCharacteristicWithResponseForService(
+      SERVICE_UUID,
+      WRITE_UUID,
+      base64Payload
+    );
+
+    console.log("[BLE] Plant profile sent successfully.");
   },
 
-  stopScan: async (): Promise<void> => {
-    console.log('Mock BLE scan stopped.');
-  },
+  /** READ LATEST SENSOR VALUES (NOTIFY CHARACTERISTIC) */
+  async readLatest(deviceId: string): Promise<any> {
+    const device = await this.connect(deviceId);
 
-  connect: async (deviceId: string): Promise<boolean> => {
-    console.log(`Mock connect to ${deviceId}`);
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return true;
-  },
+    return new Promise(async (resolve) => {
+      const characteristic = await device.monitorCharacteristicForService(
+        SERVICE_UUID,
+        NOTIFY_UUID,
+        (error, char) => {
+          if (error) {
+            console.log("[BLE] Notify error:", error);
+            return;
+          }
 
-  disconnect: async (deviceId: string): Promise<boolean> => {
-    console.log(`Mock disconnect from ${deviceId}`);
-    return true;
-  },
+          if (char?.value) {
+            const raw = Buffer.from(char.value, "base64");
+            console.log("[BLE] Raw notify data:", raw);
 
-  readLatest: async (deviceId: string): Promise<Reading> => {
-    console.log(`Mock reading from ${deviceId}`);
-
-    const reading: Reading = {
-      moisture: Math.floor(Math.random() * 40) + 40, // 40–80%
-      tempC: Math.floor(Math.random() * 10) + 20,    // 20–30°C
-      light: Math.floor(Math.random() * 4000) + 200, // 200–4200 lux
-      ts: Date.now(),
-    };
-
-    return reading;
+            // TODO: decode the board’s notify format
+            resolve({ ok: true, raw });
+          }
+        }
+      );
+    });
   },
 };
