@@ -1,6 +1,5 @@
-import { useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
-import React from "react";
+import { StackScreenProps } from "@react-navigation/stack";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -11,13 +10,46 @@ import {
   View,
 } from "react-native";
 import { usePlantStore } from "../state/context";
-import { Plant, RootStackParamList } from "../types"; // 👈 Plant type
+import { PlantType, RootStackParamList } from "../types"; // 👈 Plant type
+import { auth, db } from "../utils/firebaseConfig";
 
-type NavProp = StackNavigationProp<RootStackParamList, "MyPlants">;
+import AddPlantCard from "../components/AddPlantCard";
 
-export default function MyPlantsScreen() {
-  const navigation = useNavigation<NavProp>();
+
+//type NavProp = StackNavigationProp<RootStackParamList, "MyPlants">;
+type Props = StackScreenProps<RootStackParamList, "MyPlants">;
+
+export default function MyPlantsScreen({route, navigation}: Props) {
+  //const navigation = useNavigation<NavProp>();
+  //const route = useRoute();
+  const returnedPlant = (route.params as any)?.selectedPlant ?? null;
   const { state, dispatch } = usePlantStore();
+  const[isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if(!uid) return;
+
+    const unsubscribe = db
+      .collection("users")
+      .doc(uid)
+      .collection("plants")
+      .orderBy("createdAt", "desc")
+      .onSnapshot((snapshot) => {
+        const plants = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as PlantType[];
+
+        dispatch({type: "SET_PLANTS", payload: plants})
+      });
+      return unsubscribe;
+  })
+  useEffect(() => {
+    if(route.params?.selectedPlant){
+      setIsExpanded(true);
+    }
+  }, [route.params]);
 
   const handleDelete = (id: string) => {
     Alert.alert(
@@ -28,14 +60,19 @@ export default function MyPlantsScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => dispatch({ type: "REMOVE_PLANT", payload: id }),
+          onPress: () => db
+                          .collection("users")
+                          .doc(auth.currentUser?.uid)
+                          .collection("plants")
+                          .doc(id)
+                          .delete(),
         },
       ]
     );
   };
 
   // 👇 use Plant type and include small image inside the card
-  const renderPlant = ({ item }: { item: Plant }) => (
+  const renderPlant = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.card}
       onPress={() => navigation.navigate("PlantDetail", { plantId: item.id })}
@@ -44,7 +81,7 @@ export default function MyPlantsScreen() {
       {/* top row: text + small thumbnail */}
       <View style={styles.topRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.plantName}>🌱 {item.name}</Text>
+          <Text style={styles.plantName}>🌱 {item.customName}</Text>
           <Text style={styles.location}>
             📍 {item.location || "Unknown location"}
           </Text>
@@ -75,6 +112,7 @@ export default function MyPlantsScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>My Plants</Text>
 
+
       <FlatList
         data={state.plants}
         keyExtractor={(item) => item.id}
@@ -84,14 +122,19 @@ export default function MyPlantsScreen() {
         ListEmptyComponent={
           <Text style={styles.empty}>No plants yet. Add one!</Text>
         }
+        contentContainerStyle={{paddingBottom: 120}}
       />
-
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => navigation.navigate("AddPlant")}
-      >
-        <Text style={styles.addButtonText}>Add New Plant</Text>
-      </TouchableOpacity>
+        {isExpanded && 
+      (<AddPlantCard onClose ={() => setIsExpanded(false)}
+        selectedPlant = {returnedPlant}/>)}
+        {!isExpanded && (
+          <TouchableOpacity 
+          style = {styles.addButton}
+          onPress={() => setIsExpanded(true)}
+          >
+            <Text style = {styles.addButtonText}>Add New Plant</Text>
+          </TouchableOpacity>
+        )}
     </View>
   );
 }

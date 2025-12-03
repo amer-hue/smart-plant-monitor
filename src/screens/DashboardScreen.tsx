@@ -7,17 +7,53 @@ import {
   View
 } from "react-native";
 import BananaImage from "../assets/banana.png";
-import { usePlantStore } from "../state/context";
 import {
   formatTemperature,
   generateCareReminder,
   getLightLevel
 } from "../utils/helpers";
 
+import { useEffect, useState } from "react";
+import { auth, db } from "../utils/firebaseConfig";
+
 export default function DashboardScreen() {
-  const {
-    state: { plants, isFahrenheit },
-  } = usePlantStore();
+  const [userName, setUserName] = useState("User");
+  const [plants, setPlants] = useState<any>([]);
+  const [isFahrenheit, setIsFahrenheit] =useState(false);
+
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if(!uid) return;
+
+    db.collection("users")
+      .doc(uid)
+      .get()
+      .then((doc) => {
+        if(doc.exists && doc.data()?.name) {
+          setUserName(doc.data()?.name);
+        }
+      });
+      }, []);
+
+    useEffect(() => {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+
+      const unsubscribe = db  
+                            .collection("users")
+                            .doc(uid)
+                            .collection("plants")
+                            .orderBy("createdAt")
+                            .onSnapshot((snap => {
+                              const list = snap.docs.map((doc) => ({
+                                id: doc.id,
+                                ...doc.data(),
+                              }));
+                              setPlants(list);
+                            }));
+                            return unsubscribe;
+    }, []);
+  
 
   // Dummy notification data
   const notifications: Record<string, string> = {
@@ -27,7 +63,7 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Welcome back, Amer Issa</Text>
+      <Text style={styles.title}>Welcome back, {userName}</Text>
       <Text style={styles.subtitle}>Recent Activity</Text>
 
       {plants.length === 0 && (
@@ -64,7 +100,7 @@ export default function DashboardScreen() {
 
         return (
           <View key={plant.id} style={styles.card}>
-            <Text style={styles.plantName}>🪴 {plant.name}</Text>
+            <Text style={styles.plantName}>🪴 {plant.customName}</Text>
 
             <Image source={imageSource} style={styles.image} />
 
