@@ -1,17 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
-import { StackScreenProps } from "@react-navigation/stack";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
 import { collection, getDocs } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { PlantType, RootStackParamList } from '../types';
 import { db } from "../utils/firebaseConfig";
 
-type Props = StackScreenProps<RootStackParamList, 'AllPlants'>;
+type NavProp = StackNavigationProp<RootStackParamList, 'AllPlants'>;
 
 
-export default function AllPlantsScreen({navigation}: Props){
+export default function AllPlantsScreen(){
+    const navigation = useNavigation<NavProp>();
+
     const [plants, setPlants] = useState<PlantType[]>([]);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [selected, setSelected] = useState<PlantType | null>(null);
 
     const toggleExpand = (id: string) => {
         setExpandedId(prev => (prev === id ? null: id));
@@ -25,6 +29,24 @@ export default function AllPlantsScreen({navigation}: Props){
         load();
     }, []);
 
+    const handleSelect = () => {
+        if(!selected) return;
+
+        navigation.reset({
+            index: 0,
+            routes: [
+                {
+                    name: "MainTabs",
+                    params: {
+                        screen: "MyPlants",
+                        params: {selectedPlant: selected}
+                    }
+                }
+            ]
+        })
+
+        };
+
     return(
         <View style = {{flex: 1, backgroundColor: "#121212"}}>
         <TouchableOpacity 
@@ -35,8 +57,13 @@ export default function AllPlantsScreen({navigation}: Props){
 
         <ScrollView style ={{flex: 1, backgroundColor: "#121212", padding: 20}}>
 
-            {plants.map((p) => (
-                <View key = {p.id} style = {styles.card}>
+            {plants.map((p) => {
+                const isSelected = selected?.id == p.id;
+
+                return(
+                <TouchableOpacity key = {p.id} style = {[styles.card, isSelected && styles.selectedCard]} 
+                onPress={() => setSelected(p)}
+                activeOpacity={0.8}>
                     <Image source = {{uri: p.image}} style = {styles.image} />
                     <Text style = {styles.name}>{p.name}</Text>
                     <Text style = {styles.category}>{p.category}</Text>
@@ -66,12 +93,23 @@ export default function AllPlantsScreen({navigation}: Props){
                             </Text>
                         </View>
                     )}
-                </View>
-            ))}
+                </TouchableOpacity>
+                );
+                })}
         </ScrollView>
+
+        <TouchableOpacity
+        disabled={!selected}
+            onPress={handleSelect}
+            style={[styles.selectButton, !selected && {opacity: 0.4}]}
+        >
+            <Text style ={styles.selectButtonText}>Select Plant</Text>
+        </TouchableOpacity>
+
         </View>
     );
 }
+
 const styles = StyleSheet.create({
   card: {
     marginBottom: 20,
@@ -114,6 +152,26 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
-  }
+  },
+  selectedCard: {
+    borderColor: "#4CAF50",
+    borderWidth: 2,
+    backgroundColor: "#1a2a1a"
+  },
+  selectButton: {
+    position: "absolute",
+    bottom: 25,
+    left: 20,
+    right: 20,
+    backgroundColor: "#4CAF50",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  selectButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
 
 });

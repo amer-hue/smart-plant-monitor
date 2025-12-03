@@ -27,10 +27,13 @@ export type RootStackParamList = {
 
   MainTabs: {
     screen?: 'Dashboard' | 'MyPlants' | 'Scan' | 'Settings';
+    params?: {
+      selectedPlant?: PlantType;
+    }
   };
 
   Dashboard: undefined;
-  MyPlants: undefined;
+  MyPlants: {selectedPlant?: PlantType } | undefined;
   Scan: undefined;
   Settings: undefined;
 

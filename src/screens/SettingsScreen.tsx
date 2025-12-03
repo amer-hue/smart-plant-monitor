@@ -55,7 +55,8 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await signOut(auth);     // ← CORRECT V9 LOGOUT
+              await signOut(auth);
+              dispatch({ type: "SET_PLANTS", payload: []});
               console.log("User logged out");
             } catch (error: any) {
               console.log("Logout error:", error.message);
