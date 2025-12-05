@@ -1,9 +1,10 @@
 export type Reading = {
-  moisture: number;
+  soilMoisture: number;
   tempC: number;
   light: number;
-  ts: number;
+  humidity: number;
 };
+
 
 export type PlantType ={
   id:string,
@@ -18,6 +19,40 @@ export type PlantType ={
     light: number[];
   };
 };
+
+export type FirestorePlant = {
+  id: string;
+  userId: string;
+  customName: string;
+  plantTypeId: string;
+  imageUri?: string;
+  location?: string;
+  createdAt: number;
+
+  last: Reading | null;
+  deviceId?: string | null;
+};
+
+export type IdealMetrics = {
+  soilMoisture: number[];
+  humidity: number[];
+  temperature: number[];
+  light: number[];
+};
+
+export type PlantTypeData ={
+  name: string;
+  category?: string;
+  image: string;
+  idealMetrics: IdealMetrics;
+};
+
+export type Device = {
+  name: string;
+  rssi: number;
+  connected: boolean;
+  plantId: string | null;
+}
 
 
 // Add EditProfile route

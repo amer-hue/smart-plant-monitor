@@ -1,8 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import * as Crypto from 'expo-crypto';
-import React, { useEffect, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -10,218 +9,303 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { startLiveStreamingForPlant } from "../ble/live";
+import { auth, db } from "../utils/firebaseConfig";
 
-import { bleManager } from '../ble/BLE';
-import { requestBluetoothPermissions } from '../ble/permissions';
-import EmptyState from '../components/EmptyState';
-import { usePlantStore } from '../state/context';
-import { colors } from '../theme/colors';
-import { RootStackParamList } from '../types';
+import { bleManager } from "../ble/BLE";
+import { requestBluetoothPermissions } from "../ble/permissions";
+import EmptyState from "../components/EmptyState";
+import { colors } from "../theme/colors";
+import { FirestorePlant, RootStackParamList } from "../types";
 
-type Device = { id: string; name: string; rssi: number };
+/* ---------------------------
+   DEVICE DICTIONARY TYPE
+---------------------------- */
+type DeviceState = {
+  name: string;
+  rssi: number;
+  connected: boolean;
+  plantId: string | null;
+};
 
-// 👇 change this if your board name ever changes
-const TARGET_NAME_KEYWORDS = ['SPMS']; // e.g. ['SPMS', 'Plant']
+const TARGET_NAME_KEYWORDS = ["SPMS"];
+const SPMS_SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
 
+/* ---------------------------
+   FETCH USER PLANTS
+---------------------------- */
+function useUserPlants() {
+  const [plants, setPlants] = useState<FirestorePlant[]>([]);
+
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
+    const unsub = db
+      .collection("users")
+      .doc(uid)
+      .collection("plants")
+      .onSnapshot((snap) => {
+        const list = snap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as FirestorePlant[];
+
+        setPlants(list);
+      });
+
+    return unsub;
+  }, []);
+
+  return plants;
+}
+
+/* ---------------------------
+   MAIN SCREEN
+---------------------------- */
 const ScanScreen = () => {
-  const [devices, setDevices] = useState<Device[]>([]);
+  const plants = useUserPlants();
+  const [devices, setDevices] = useState<Record<string, DeviceState>>({});
   const [isScanning, setIsScanning] = useState(false);
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const {
-    state: { plants },
-    dispatch,
-    pairDevice,
-    refreshReading,
-  } = usePlantStore();
 
-  // Start scanning as soon as screen opens
+  /* ---------------------------
+       AUTOSTART SCAN
+  ---------------------------- */
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       const granted = await requestBluetoothPermissions();
-
       if (!granted) {
         Alert.alert(
-          'Bluetooth Required',
-          'Bluetooth permission is required to scan for plant sensors. Please enable it in Settings > Privacy & Security > Bluetooth.'
+          "Bluetooth Required",
+          "Enable Bluetooth permissions to scan for sensors."
         );
         return;
       }
 
-      if (!cancelled) {
-        await startScan();
-      }
+      if (!cancelled) startScan();
     })();
 
     return () => {
       cancelled = true;
       try {
         bleManager.stopDeviceScan();
-      } catch {
-        // ignore
-      }
+      } catch {}
     };
   }, []);
 
+  
+  /* ---------------------------
+          START SCAN
+  ---------------------------- */
   const startScan = async () => {
-    console.log('[Scan] Starting scan…');
+    console.log("[Scan] Starting scan…");
 
     const granted = await requestBluetoothPermissions();
-    if (!granted) {
-      Alert.alert(
-        'Bluetooth Required',
-        'Bluetooth permission is required to scan for plant sensors. Please enable it in Settings > Privacy & Security > Bluetooth.'
-      );
-      return;
-    }
+    if (!granted) return;
 
-    setDevices([]);
     setIsScanning(true);
 
-    // Stop any previous scan
     try {
       bleManager.stopDeviceScan();
-    } catch {
-      // ignore
-    }
+    } catch {}
 
-    bleManager.startDeviceScan(null, null, (error, device) => {
-      if (error) {
-        console.log('[Scan] Scan error:', error);
-        Alert.alert('Error', 'Bluetooth scan failed.');
+    
+    bleManager.startDeviceScan(null, null, (err, device) => {
+      if (err) {
+        console.log("[Scan] Error:", err);
         setIsScanning(false);
-        try {
-          bleManager.stopDeviceScan();
-        } catch {
-          // ignore
-        }
         return;
       }
-
       if (!device || !device.id) return;
 
-      const name = device.name ?? '';
-
-      // 🔍 Filter: only keep devices whose name matches our board
+      const name = device.name ?? "";
       const matchesTarget =
         name.length > 0 &&
-        TARGET_NAME_KEYWORDS.some((kw) => name.toLowerCase().includes(kw.toLowerCase()));
+        TARGET_NAME_KEYWORDS.some((kw) =>
+          name.toLowerCase().includes(kw.toLowerCase())
+        );
 
-      if (!matchesTarget) {
-        // Ignore random "Unknown Device" things
-        return;
-      }
+      if (!matchesTarget) return;
 
       setDevices((prev) => {
-        const rssi = device.rssi ?? 0;
-
-        const existingIndex = prev.findIndex((d) => d.id === device.id);
-        const updatedDevice: Device = { id: device.id, name, rssi };
-
-        if (existingIndex === -1) {
-          return [...prev, updatedDevice];
-        }
-
-        const copy = [...prev];
-        copy[existingIndex] = updatedDevice;
-        return copy;
+        const existing = prev[device.id];
+        return {
+          ...prev,
+          [device.id]: {
+            name,
+            rssi: device.rssi ?? existing?.rssi ?? 0,
+            connected: existing?.connected ?? false,
+            plantId: existing?.plantId ?? null,
+          },
+        };
       });
     });
 
-    // Auto-stop scan after 10 seconds
     setTimeout(() => {
-      console.log('[Scan] Auto-stopping scan');
+      console.log("[Scan] Auto-stop");
       try {
         bleManager.stopDeviceScan();
-      } catch {
-        // ignore
-      }
+      } catch {}
       setIsScanning(false);
     }, 10000);
   };
 
-  const handleDevicePress = (device: Device) => {
-    console.log('[Scan] Device tapped:', device);
-
+  /* ---------------------------
+      DISCONNECT DEVICE
+  ---------------------------- */
+  async function disconnectDevice(deviceId: string) {
     try {
-      bleManager.stopDeviceScan();
-    } catch {
-      // ignore
-    }
-    setIsScanning(false);
+      await bleManager.cancelDeviceConnection(deviceId);
+    } catch {}
 
+    setDevices((prev) => ({
+      ...prev,
+      [deviceId]: {
+        ...prev[deviceId],
+        connected: false,
+        plantId: null,
+      },
+    }));
+  }
+
+  /* ---------------------------
+       TAP DEVICE CARD
+  ---------------------------- */
+  const handleDevicePress = (device: { id: string } & DeviceState) => {
+    if (device.connected) {
+      const plantName =
+        plants.find((p) => p.id === device.plantId)?.customName ??
+        device.plantId ??
+        "";
+
+      Alert.alert(
+        "Device Connected",
+        `${device.name} is linked to ${plantName}.`,
+        [
+          { text: "Switch Plant", onPress: () => showPlantSelect(device) },
+          {
+            text: "Disconnect",
+            style: "destructive",
+            onPress: () => disconnectDevice(device.id),
+          },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+      return;
+    }
+
+    showPlantSelect(device);
+  };
+
+  /* ---------------------------
+       SELECT A PLANT
+  ---------------------------- */
+  function showPlantSelect(device: { id: string } & DeviceState) {
     Alert.alert(
-      'Pair Device',
-      `Which plant do you want to link to ${device.name}?`,
+      "Pair Device",
+      `Link ${device.name} to which plant?`,
       [
         ...plants.map((p) => ({
-          text: p.name,
+          text: p.customName,
           onPress: async () => {
-            console.log('[Scan] Pairing existing plant', p.id, 'to', device.id);
-            await pairDevice(p.id, device.id);
-            await refreshReading(p.id);
+            const uid = auth.currentUser?.uid;
+            if (!uid) return;
+
+            await db
+              .collection("users")
+              .doc(uid)
+              .collection("plants")
+              .doc(p.id)
+              .update({ deviceId: device.id });
+
+            startLiveStreamingForPlant(p.id, device.id);
+
+            setDevices((prev) => ({
+              ...prev,
+              [device.id]: {
+                ...prev[device.id],
+                connected: true,
+                plantId: p.id,
+              },
+            }));
+
             navigation.goBack();
           },
         })),
         {
-          text: 'Create New Plant',
-          onPress: async () => {
-            const newPlantId = Crypto.randomUUID();
-            console.log(
-              '[Scan] Creating new plant',
-              newPlantId,
-              'for device',
-              device.id
-            );
-            dispatch({
-              type: 'ADD_PLANT',
-              payload: { id: newPlantId, name: `New Plant ${plants.length + 1}` },
-            });
-            await pairDevice(newPlantId, device.id);
-            await refreshReading(newPlantId);
-            navigation.goBack();
-          },
+          text: "Create New Plant",
+          onPress: () => navigation.navigate("MyPlants"),
         },
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
       ]
+    );
+  }
+
+  /* ---------------------------
+       RENDER DEVICE CARD
+  ---------------------------- */
+  const deviceList = Object.entries(devices).map(([id, dev]) => ({
+    id,
+    ...dev,
+  }));
+
+  const renderDevice = ({ item }: { item: { id: string } & DeviceState }) => {
+    const plantName =
+      plants.find((p) => p.id === item.plantId)?.customName ?? null;
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.card,
+          item.connected && { borderColor: "#4CAF50", borderWidth: 2 },
+        ]}
+        onPress={() => handleDevicePress(item)}
+      >
+        <View style={styles.cardHeader}>
+          <Ionicons name="bluetooth" size={22} />
+          <Text style={styles.deviceName}>{item.name}</Text>
+        </View>
+
+        <Text style={styles.deviceId}>{item.id}</Text>
+
+        {item.connected && plantName && (
+          <Text style={{ color: "#4CAF50", marginBottom: 5 }}>
+            Connected to: {plantName}
+          </Text>
+        )}
+
+        <View style={styles.signalRow}>
+          <Ionicons name="wifi-outline" size={16} />
+          <Text style={styles.deviceRssi}>RSSI: {item.rssi}</Text>
+        </View>
+      </TouchableOpacity>
     );
   };
 
-  const renderDevice = ({ item }: { item: Device }) => (
-    <TouchableOpacity style={styles.card} onPress={() => handleDevicePress(item)}>
-      <View style={styles.cardHeader}>
-        <Ionicons name="bluetooth" size={22} />
-        <Text style={styles.deviceName}>{item.name || 'Unknown Device'}</Text>
-      </View>
-
-      <Text style={styles.deviceId}>{item.id}</Text>
-
-      <View style={styles.signalRow}>
-        <Ionicons name="wifi-outline" size={16} />
-        <Text style={styles.deviceRssi}>RSSI: {item.rssi}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-
+  /* ---------------------------
+        UI
+  ---------------------------- */
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Scan for Devices</Text>
 
       {isScanning && <Text style={styles.scanningText}>Scanning...</Text>}
 
-      {devices.length === 0 && !isScanning ? (
+      {deviceList.length === 0 && !isScanning ? (
         <EmptyState
-          message="No plant sensors found nearby."
+          message="No sensors detected."
           ctaText="Scan Again"
           onCtaPress={startScan}
         />
       ) : (
         <FlatList
-          data={devices}
+          data={deviceList}
           keyExtractor={(item) => item.id}
           renderItem={renderDevice}
           contentContainerStyle={{ paddingBottom: 50 }}
@@ -233,48 +317,45 @@ const ScanScreen = () => {
 
 export default ScanScreen;
 
-// -------------------------------
-// STYLES
-// -------------------------------
+/* ---------------------------
+        STYLES
+---------------------------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: 18,
   },
-
   title: {
     fontSize: 26,
-    fontWeight: '700',
-    color: '#fff',
-    textAlign: 'center',
+    fontWeight: "700",
+    color: "#fff",
+    textAlign: "center",
     marginTop: 20,
     marginBottom: 10,
   },
-
   scanningText: {
     color: colors.textFaded,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
   },
-
   card: {
     backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 14,
     marginBottom: 14,
-    borderColor: '#333',
+    borderColor: "#333",
     borderWidth: 1,
   },
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   deviceName: {
     color: colors.text,
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 8,
   },
   deviceId: {
@@ -283,8 +364,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   signalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   deviceRssi: {
     color: colors.textFaded,

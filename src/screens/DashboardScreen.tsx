@@ -8,7 +8,8 @@ import {
   View,
 } from "react-native";
 
-import BananaImage from "../assets/banana.png";
+import { useLiveReadingsStore } from "../state/liveReadingsStore";
+import { PlantTypeData } from "../types/index";
 import { auth, db } from "../utils/firebaseConfig";
 import {
   formatTemperature,
@@ -16,10 +17,34 @@ import {
   getLightLevel,
 } from "../utils/helpers";
 
+
+function checkWarning(
+  value: number | undefined,
+  limits?: number[]
+): "low" | "high" | null {
+  if (value === undefined || !limits) return null;
+
+  const [min, max] = limits;
+
+  if (value < min) return "low";
+  if (value > max) return "high";
+
+  return null;
+}
+
 export default function DashboardScreen() {
   const [userName, setUserName] = useState("User");
   const [plants, setPlants] = useState<any[]>([]);
+  const [plantTypes, setPlantTypes] = useState<any>({});
   const [isFahrenheit, setIsFahrenheit] = useState(false);
+  const liveReadingsByPlantId = useLiveReadingsStore(
+  (state) => state.readingsByPlantId
+);
+
+  const notifications: Record<string, string> = {
+  "testing-two-id": "Moisture dropped recently",
+  "plant-two-id": "Low light detected",
+};
 
   // Load user name + temperature preference
   useEffect(() => {
@@ -38,6 +63,17 @@ export default function DashboardScreen() {
           }
         }
       });
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = db.collection("plantTypes").onSnapshot((snap) => {
+      const obj: any = {};
+      snap.forEach((doc) => {
+        obj[obj.id] = doc.data();
+      });
+      setPlantTypes(obj);
+    });
+    return unsubscribe;
   }, []);
 
   // Subscribe to plants list
@@ -61,12 +97,6 @@ export default function DashboardScreen() {
     return unsubscribe;
   }, []);
 
-  // Dummy notification data (can be replaced by real events later)
-  const notifications: Record<string, string> = {
-    "testing-two-id": "Moisture dropped from 60% → 55% (5 minutes ago)",
-    "plant-two-id": "Low light detected (2 hours ago)",
-  };
-
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Welcome back, {userName}</Text>
@@ -77,44 +107,75 @@ export default function DashboardScreen() {
       )}
 
       {plants.map((plant) => {
-        const imageSource = plant.imageUri ? { uri: plant.imageUri } : BananaImage;
+        const imageSource = plant.imageUri;
+        const live = liveReadingsByPlantId[plant.id] ?? null;
+        const last = !live ? plant.last : null;
+        const source = live ?? plant.last;
 
-        const temp = plant.last?.tempC
-          ? formatTemperature(plant.last.tempC, isFahrenheit)
+
+        const plantType: PlantTypeData | undefined = plantTypes[plant.plantTypeId];
+
+        const ideals = plantType?.idealMetrics;
+
+        const temp = source?.tempC
+          ? formatTemperature(source.tempC, isFahrenheit)
           : "--°";
 
-        const moisture =
-          plant.last?.moisture !== undefined
-            ? `${plant.last.moisture}%`
+        const soilMoisture =
+          source?.soilMoisture !== undefined
+            ? `${source.soilMoisture}%`
             : "--%";
 
         const light =
-          plant.last?.light !== undefined
-            ? getLightLevel(plant.last.light)
+          source?.light !== undefined
+            ? getLightLevel(source.light)
             : "N/A";
 
-        const moistureWarning =
-          plant.last?.moisture !== undefined && plant.last.moisture < 30;
+        const humidity = 
+          source?.humidity !== undefined
+            ? `${source.humidity}%`
+            : "--%";
 
-        const lightWarning =
-          plant.last?.light !== undefined && plant.last.light < 500;
+        const moistureWarning = checkWarning(
+          source?.soilMoisture,
+          ideals?.soilMoisture
+        );
+
+        const humidityWarning = checkWarning(
+          source?.humidity,
+          ideals?.humidity
+        );
+
+        const tempWarning = checkWarning(
+          source?.tempC,
+          ideals?.temperature
+        );
+
+        const lightWarning = checkWarning(
+          source?.light,
+          ideals?.light
+        );
 
         const note =
           notifications[plant.id] || "No updates yet. Everything looks good!";
 
         return (
-          <View key={plant.id} style={styles.card}>
+          <View style={styles.card} key={plant.id} >
             <Text style={styles.plantName}>
               🪴 {plant.customName || plant.name}
             </Text>
 
-            <Image source={imageSource} style={styles.image} />
+            <Image source={{uri: plant.imageUri }} style={styles.image} />
 
             <View style={styles.statsRow}>
               <Text style={styles.stat}>🌡 {temp}</Text>
 
               <Text style={styles.stat}>
-                💧 {moisture} {moistureWarning ? "⚠️" : ""}
+                💧 {soilMoisture} {moistureWarning ? "⚠️" : ""}
+              </Text>
+
+              <Text style={styles.stat}>
+                💨 {humidity} {humidityWarning ? "⚠️" : ""}
               </Text>
 
               <Text style={styles.stat}>

@@ -1,5 +1,6 @@
 // src/ble/client.ts
 import { bleManager } from "./BLE";
+import { db, auth } from "../utils/firebaseConfig";
 
 const SERVICE_UUID = "1234567A-1234-5678-1234-56789ABCDEF0";
 const WRITE_UUID   = "1234567A-1234-5678-1234-56789ABCDEF1";
