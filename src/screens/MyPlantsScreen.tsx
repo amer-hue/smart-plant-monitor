@@ -69,7 +69,7 @@ export default function MyPlantsScreen({ route, navigation }: Props) {
     ]);
   };
 
-  const renderPlant = ({ item }: { item: PlantType }) => {
+  const renderPlant = ({ item }: { item: any }) => {
     const last = (item as any).last; // last reading, if your backend writes it
     const moisture = last?.moisture ?? "--";
     const tempC = last?.tempC ?? "--";
@@ -83,7 +83,7 @@ export default function MyPlantsScreen({ route, navigation }: Props) {
         {/* top row: text + small thumbnail */}
         <View style={styles.topRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.plantName}>🌱 {item.customName || item.name}</Text>
+            <Text style={styles.plantName}>🌱 {item.customName}</Text>
             <Text style={styles.location}>
               📍 {(item as any).location || "Unknown location"}
             </Text>

@@ -12,13 +12,12 @@ export const formatTemperature = (celsius: number, isFahrenheit: boolean) => {
   }
   return `${celsius.toFixed(1)}°C`;
 };
-
 /* ---------------- Plant Status Colors ---------------- */
 
 export const getStatusColor = (reading: Reading | undefined) => {
   if (!reading) return "red";
-  if (reading.moisture > 60 && reading.moisture < 90) return "green";
-  if (reading.moisture <= 60 && reading.moisture > 30) return "amber";
+  if (reading.soilMoisture > 60 && reading.soilMoisture < 90) return "green";
+  if (reading.soilMoisture <= 60 && reading.soilMoisture > 30) return "amber";
   return "red";
 };
 

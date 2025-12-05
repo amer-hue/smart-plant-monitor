@@ -112,6 +112,7 @@ export default function AddPlantCard({ onClose, selectedPlant }: Props) {
         imageUri: finalImage,
         createdAt: Date.now(),
         last: null,
+        deviceId: null,
       });
 
     alert("Plant added!");
