@@ -1,18 +1,19 @@
 import { Reading } from "../types";
 
-/* ---------------- Temperature Helpers ---------------- */
 
 export const celsiusToFahrenheit = (c: number) => (c * 9) / 5 + 32;
 
-export const formatTemperature = (celsius: number, isFahrenheit: boolean) => {
-  if (celsius === undefined || celsius === null) return "--°C";
+export function formatTemperature(tempC: number, isFahrenheit: boolean) {
+  if (typeof tempC !== "number") return "--";
 
-  if (isFahrenheit) {
-    return `${celsiusToFahrenheit(celsius).toFixed(1)}°F`;
-  }
-  return `${celsius.toFixed(1)}°C`;
-};
-/* ---------------- Plant Status Colors ---------------- */
+  const value = isFahrenheit
+    ? tempC * (9 / 5) + 32
+    : tempC;
+
+  const unit = isFahrenheit ? "F" : "C";
+  return `${Math.round(value)}°${unit}`;
+}
+
 
 export const getStatusColor = (reading: Reading | undefined) => {
   if (!reading) return "red";
@@ -21,7 +22,6 @@ export const getStatusColor = (reading: Reading | undefined) => {
   return "red";
 };
 
-/* ---------------- Light Level ---------------- */
 
 export const getLightLevel = (lux: number) => {
   if (lux === undefined || lux === null) return "N/A";
@@ -30,7 +30,6 @@ export const getLightLevel = (lux: number) => {
   return "High";
 };
 
-/* ---------------- SMART CARE REMINDER ---------------- */
 
 export function generateCareReminder(reading?: {
   tempC?: number;

@@ -23,11 +23,11 @@ export default function SignUpScreen() {
     }
 
     try {
-      // Create user with Firebase (compat)
+      //user registration w/ firebase compat methods, stored in users table and in authentication users table
       const userCred = await auth.createUserWithEmailAndPassword(email, password);
       const uid = userCred.user!.uid;
 
-      // Create Firestore user document
+      // Create Firestore user document in users table
       try {
         console.log("Creating Firestore profile...");
         await setDoc(doc(db, "users", uid), {

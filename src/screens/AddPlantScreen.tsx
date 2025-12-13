@@ -13,7 +13,6 @@ import {
 
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import * as Crypto from 'expo-crypto';
 import * as ImagePicker from 'expo-image-picker';
 
 import { usePlantStore } from '../state/context';
@@ -32,7 +31,7 @@ export default function AddPlantScreen() {
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [location, setLocation] = useState('');
-  const [imageUri, setImageUri] = useState<string | undefined>(); // 🟢 Added
+  const [imageUri, setImageUri] = useState<string | undefined>(); 
   
   const [allPlants, setAllPlantTypes] = useState<PlantType[]>([]);
   const[filteredPlantTypes, setFilteredPlantTypes] = useState<PlantType[]>([]);
@@ -51,10 +50,8 @@ export default function AddPlantScreen() {
     loadPlantTypes();
   }, []);
 
- // temporary bypass while simulator storage is broken
 const persistToAppStorage = async (srcUri: string) => srcUri;
 
-  // 🟢 Pick image from library
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -75,7 +72,7 @@ const persistToAppStorage = async (srcUri: string) => srcUri;
     }
   };
 
-  // 🟢 Take photo with camera
+  // photo w/ user camera
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
@@ -101,17 +98,7 @@ const persistToAppStorage = async (srcUri: string) => srcUri;
       return;
     }
 
-    const newPlant: Plant = {
-      id: Crypto.randomUUID(),
-      name,
-      type: type.trim() || undefined,
-      location: location.trim() || undefined,
-      imageUri, // 🟢 added image reference
-      last: undefined,
-    };
-
-    addPlant(newPlant);
-
+    
     navigation.navigate('MyPlants');
   };
 
@@ -194,7 +181,6 @@ const persistToAppStorage = async (srcUri: string) => srcUri;
         onChangeText={setLocation}
       />
 
-      {/* 🟢 Image preview */}
       {imageUri ? (
         <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="cover" />
       ) : (
@@ -202,7 +188,6 @@ const persistToAppStorage = async (srcUri: string) => srcUri;
       )}
 
 
-      {/* 🟢 Image buttons */}
       <View style={styles.row}>
         <TouchableOpacity style={styles.secondaryButton} onPress={handleTakePhoto}>
           <Text style={styles.secondaryButtonText}>📷 Take Photo</Text>

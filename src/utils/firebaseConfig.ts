@@ -1,4 +1,4 @@
-// Firebase v9 compat syntax (best for Expo)
+// firebase v9 compat syntax, chosen over modular due to ble connections
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
 import "firebase/compat/firestore";
@@ -15,7 +15,6 @@ const firebaseConfig = {
   measurementId: "G-N1F4T8180Q",
 };
 
-// Only initialize once
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }

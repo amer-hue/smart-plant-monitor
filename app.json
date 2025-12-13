@@ -11,13 +11,14 @@
 
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fabian.plantmonitor9",
+      "bundleIdentifier": "com.amer.plantmonitor9",
       "infoPlist": {
         "NSCameraUsageDescription": "This app uses the camera to take plant photos.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photos to attach plant images.",
-
         "NSBluetoothAlwaysUsageDescription": "Bluetooth is needed to scan and connect to plant sensors.",
-        "NSBluetoothPeripheralUsageDescription": "This app requires Bluetooth to connect to plant sensors."
+        "NSBluetoothPeripheralUsageDescription": "This app requires Bluetooth to connect to plant sensors.",
+
+        "UIBackgroundModes": ["fetch"]
       }
     },
 

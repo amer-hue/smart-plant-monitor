@@ -29,11 +29,8 @@ export default function SignInScreen() {
     }
 
     try {
-      // 🔥 Firebase v9 compat login
+      // Firebase compat login
       await auth.signInWithEmailAndPassword(email.trim(), password);
-
-      // ❗ DO NOT navigate manually
-      // App.tsx handles navigation automatically using onAuthStateChanged
 
     } catch (error: any) {
       Alert.alert("Login Error", error.message);
@@ -78,6 +75,7 @@ export default function SignInScreen() {
   );
 }
 
+//styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -1,14 +1,14 @@
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { PlantType } from "../types";
 import { auth, db } from "../utils/firebaseConfig";
@@ -17,7 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../types";
 
-
+//if plant is selected from All Plants screen, it is sent here 
 type Props = {
   onClose: () => void;
   selectedPlant?: PlantType | null;
@@ -38,7 +38,7 @@ export default function AddPlantCard({ onClose, selectedPlant }: Props) {
 
   const [searchText, setSearchText] = useState(""); // 🔍 smart search
 
-  /** 🔥 Load plantTypes from Firestore */
+  /** Load all plantTypes from Firestore */
   useEffect(() => {
     const fetchTypes = async () => {
       const snap = await db.collection("plantTypes").get();
@@ -55,7 +55,7 @@ export default function AddPlantCard({ onClose, selectedPlant }: Props) {
     fetchTypes();
   }, []);
 
-  /** 🔍 Filtering logic */
+  /** smartsearch logic */
   useEffect(() => {
     if (!searchText) {
       setFiltered(plantTypes);
@@ -72,11 +72,11 @@ export default function AddPlantCard({ onClose, selectedPlant }: Props) {
   useEffect(() => {
         if (selectedPlant) {
             setSelectedType(selectedPlant);
-            setSearchText(selectedPlant.name); // fills text box
+            setSearchText(selectedPlant.name);
         }
         }, [selectedPlant]);
 
-  /** 🌄 Pick image from gallery */
+
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -88,7 +88,7 @@ export default function AddPlantCard({ onClose, selectedPlant }: Props) {
     }
   };
 
-  /** ✔ Save to Firebase */
+  /** save to user's plants subcollection */
   const handleSave = async () => {
     if (!selectedType) {
       alert("Please select a plant type.");
@@ -127,7 +127,7 @@ export default function AddPlantCard({ onClose, selectedPlant }: Props) {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         
-        {/* 🔍 SMART SEARCH INPUT */}
+        {/*SMART SEARCH INPUT */}
         <Text style={styles.label}>Plant Type</Text>
         <View style = {styles.inputRow}>
         <TextInput
@@ -148,7 +148,7 @@ export default function AddPlantCard({ onClose, selectedPlant }: Props) {
         </TouchableOpacity>
         </View>
 
-        {/* 🔽 Filtered results */}
+        {/* filtered results */}
         {loadingTypes ? (
           <ActivityIndicator color="#4CAF50" />
         ) : (
@@ -218,6 +218,8 @@ export default function AddPlantCard({ onClose, selectedPlant }: Props) {
     </View>
   );
 }
+
+
 
 /* ------------------------------- Styles ------------------------------- */
 

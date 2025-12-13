@@ -29,21 +29,18 @@ export default function AllPlantsScreen(){
         load();
     }, []);
 
+    // feeds selected plant to next screen
     const handleSelect = () => {
         if(!selected) return;
 
-        navigation.reset({
-            index: 0,
-            routes: [
-                {
+        navigation.navigate({
                     name: "MainTabs",
                     params: {
                         screen: "MyPlants",
                         params: {selectedPlant: selected}
                     }
                 }
-            ]
-        })
+        )
 
         };
 
@@ -56,6 +53,7 @@ export default function AllPlantsScreen(){
             </TouchableOpacity>
 
         <ScrollView style ={{flex: 1, backgroundColor: "#121212", padding: 20}}>
+
 
             {plants.map((p) => {
                 const isSelected = selected?.id == p.id;

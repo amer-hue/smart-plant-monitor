@@ -27,6 +27,7 @@
     "expo-image": "~3.0.8",
     "expo-image-picker": "~17.0.8",
     "expo-linking": "~8.0.8",
+    "expo-notifications": "~0.32.14",
     "expo-router": "~6.0.8",
     "expo-splash-screen": "~31.0.10",
     "expo-status-bar": "~3.0.8",
@@ -53,6 +54,7 @@
   },
   "devDependencies": {
     "@react-native-community/cli": "^20.0.2",
+    "@react-native/metro-config": "^0.82.1",
     "@types/react": "~19.1.0",
     "babel-plugin-module-resolver": "^5.0.2",
     "eslint": "^9.25.0",
