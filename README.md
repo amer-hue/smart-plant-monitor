@@ -50,13 +50,13 @@ npm install
 
 8. Open project in Xcode, click on "Targets" and navigate to Signing & Certificates tab
 
-9. Create unique bundle identifier in this structure: com.XXXXX.plantmonitor9, replacing XXXXX with anything
+9. Create unique bundle identifier in this structure: com.XXXXX.plantmonitor9, replacing XXXXX with anything of your choice, as long as it is unique
 
 10. Enable Developer Mode in iOS settings
 
 11. Navigate to app.json file in an IDE
 
-12. place your custom bundle identifier in the bundleIdentifier field under ios
+12. place your custom bundle identifier created in step 9 in the bundleIdentifier field under ios
 
 13. While in root folder, run:
 npx expo prebuild
