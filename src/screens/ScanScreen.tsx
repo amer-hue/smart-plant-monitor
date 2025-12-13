@@ -20,9 +20,7 @@ import EmptyState from "../components/EmptyState";
 import { colors } from "../theme/colors";
 import { FirestorePlant, RootStackParamList } from "../types";
 
-/* ---------------------------
-   DEVICE DICTIONARY TYPE
----------------------------- */
+// device dictinary type
 type DeviceState = {
   name: string;
   rssi: number;
@@ -33,9 +31,7 @@ type DeviceState = {
 const TARGET_NAME_KEYWORDS = ["SPMS"];
 const SPMS_SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
 
-/* ---------------------------
-   FETCH USER PLANTS
----------------------------- */
+//load user's stored plants in their plants subcollection
 function useUserPlants() {
   const [plants, setPlants] = useState<FirestorePlant[]>([]);
 
@@ -62,9 +58,7 @@ function useUserPlants() {
   return plants;
 }
 
-/* ---------------------------
-   MAIN SCREEN
----------------------------- */
+//main screen
 const ScanScreen = () => {
   const plants = useUserPlants();
   const [devices, setDevices] = useState<Record<string, DeviceState>>({});
@@ -72,9 +66,7 @@ const ScanScreen = () => {
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  /* ---------------------------
-       AUTOSTART SCAN
-  ---------------------------- */
+  //begins auto scan for SPMS device
   useEffect(() => {
     let cancelled = false;
 
@@ -100,9 +92,7 @@ const ScanScreen = () => {
   }, []);
 
   
-  /* ---------------------------
-          START SCAN
-  ---------------------------- */
+  //scan function for button press after scan auto stops
   const startScan = async () => {
     console.log("[Scan] Starting scan…");
 
@@ -156,9 +146,7 @@ const ScanScreen = () => {
     }, 10000);
   };
 
-  /* ---------------------------
-      DISCONNECT DEVICE
-  ---------------------------- */
+  //device disconnection
   async function disconnectDevice(deviceId: string) {
     try {
       await bleManager.cancelDeviceConnection(deviceId);
@@ -174,9 +162,7 @@ const ScanScreen = () => {
     }));
   }
 
-  /* ---------------------------
-       TAP DEVICE CARD
-  ---------------------------- */
+  //menu after device is pressed to handle connections & disconnection
   const handleDevicePress = (device: { id: string } & DeviceState) => {
     if (device.connected) {
       const plantName =
@@ -203,16 +189,14 @@ const ScanScreen = () => {
     showPlantSelect(device);
   };
 
-  /* ---------------------------
-       SELECT A PLANT
-  ---------------------------- */
+  //plant-device link selection menu 
   function showPlantSelect(device: { id: string } & DeviceState) {
     Alert.alert(
       "Pair Device",
       `Link ${device.name} to which plant?`,
       [
         ...plants.map((p) => ({
-          text: p.customName,
+          text: p.customName ?? p.plantTypeId,
           onPress: async () => {
             const uid = auth.currentUser?.uid;
             if (!uid) return;
@@ -235,7 +219,7 @@ const ScanScreen = () => {
               },
             }));
 
-            navigation.goBack();
+            if (navigation.canGoBack()) navigation.goBack();
           },
         })),
         {
@@ -247,9 +231,7 @@ const ScanScreen = () => {
     );
   }
 
-  /* ---------------------------
-       RENDER DEVICE CARD
-  ---------------------------- */
+  // rendering of device card
   const deviceList = Object.entries(devices).map(([id, dev]) => ({
     id,
     ...dev,
@@ -288,9 +270,7 @@ const ScanScreen = () => {
     );
   };
 
-  /* ---------------------------
-        UI
-  ---------------------------- */
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Scan for Devices</Text>
@@ -317,9 +297,7 @@ const ScanScreen = () => {
 
 export default ScanScreen;
 
-/* ---------------------------
-        STYLES
----------------------------- */
+//styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

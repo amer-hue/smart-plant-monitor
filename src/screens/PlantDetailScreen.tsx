@@ -1,4 +1,3 @@
-// src/screens/PlantDetailScreen.tsx
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import * as ImagePicker from "expo-image-picker";
@@ -30,25 +29,11 @@ const PlantDetailScreen = () => {
   const uid = auth.currentUser?.uid;
 
   const [plant, setPlant] = useState<any>(null);
-  const [isFahrenheit, setIsFahrenheit] = useState(false);
+  const {
+    refreshReading,
+    state: { isFahrenheit },
+  } = usePlantStore();
 
-  const { refreshReading } = usePlantStore();
-
-  // Load user temperature preference
-  useEffect(() => {
-    if (!uid) return;
-    const unsubscribe = db
-      .collection("users")
-      .doc(uid)
-      .onSnapshot((doc) => {
-        if (doc.exists && doc.data()?.isFahrenheit !== undefined) {
-          setIsFahrenheit(doc.data()?.isFahrenheit);
-        }
-      });
-    return () => unsubscribe();
-  }, [uid]);
-
-  // Subscribe to this plant document
   useEffect(() => {
     if (!uid) return;
 
@@ -66,7 +51,6 @@ const PlantDetailScreen = () => {
     return () => unsubscribe();
   }, [uid, plantId]);
 
-  // 🔁 Auto-refresh readings every 5 seconds while this screen is open
   useEffect(() => {
     if (!plant?.deviceId) return;
 
@@ -82,7 +66,6 @@ const PlantDetailScreen = () => {
       }
     };
 
-    // fire once immediately
     tick();
     const intervalId = setInterval(tick, 5000);
 
@@ -172,23 +155,30 @@ const PlantDetailScreen = () => {
   }
 
   const last = plant.last || {};
+
   const tempText =
     last.tempC !== undefined
-      ? formatTemperature(last.tempC, isFahrenheit)
-      : "--°C";
+      ? formatTemperature(Number(last.tempC), isFahrenheit)
+      : `--°${isFahrenheit ? "F" : "C"}`;
 
   const humidityText =
-    last.humidity !== undefined ? `${last.humidity}%` : "--%";
+    last.humidity !== undefined ? `${Number(last.humidity)}%` : "--%";
+
+  const soilMoistureNum =
+    last.soilMoisture !== undefined && last.soilMoisture !== null
+      ? Number(last.soilMoisture)
+      : NaN;
 
   const moistureText =
-    last.moisture !== undefined ? `${last.moisture}%` : "--%";
+    Number.isFinite(soilMoistureNum) ? `${soilMoistureNum}%` : "--%";
 
   const lightText =
-    last.light !== undefined ? `${getLightLevel(last.light)} lux` : "-- lux";
+    last.light !== undefined && last.light !== null
+      ? `${getLightLevel(last.light)} lux`
+      : "-- lux";
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Image + small "Change" button overlay */}
       <View style={styles.imageWrapper}>
         {plant.imageUri ? (
           <Image
@@ -212,18 +202,17 @@ const PlantDetailScreen = () => {
 
       <Text style={styles.title}>{plant.customName || plant.name}</Text>
 
-      {/* Stats card */}
       <View style={styles.card}>
         <Text style={styles.rowText}>🌡 Temperature: {tempText}</Text>
-
         <Text style={styles.rowText}>💨 Humidity: {humidityText}</Text>
-
         <Text style={styles.rowText}>💧 Moisture: {moistureText}</Text>
-
         <Text style={styles.rowText}>☀️ Light: {lightText}</Text>
       </View>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate("Statistics", { plantId: plant.id })}
+      >
         <Text style={styles.buttonText}>View Statistics</Text>
       </TouchableOpacity>
 
@@ -234,10 +223,7 @@ const PlantDetailScreen = () => {
         <Text style={styles.deleteButtonText}>Delete Plant</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.back}
-      >
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
         <Text style={styles.backText}>← Back</Text>
       </TouchableOpacity>
     </ScrollView>

@@ -44,6 +44,7 @@ export default function SettingsScreen() {
     );
   };
 
+  //logout using firebase auth session
   const handleLogout = () => {
     Alert.alert(
       "Logout",

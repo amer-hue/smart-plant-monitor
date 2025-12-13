@@ -5,7 +5,7 @@ export type Reading = {
   humidity: number;
 };
 
-
+//type for static plant profiles
 export type PlantType ={
   id:string,
   name:string,
@@ -20,6 +20,7 @@ export type PlantType ={
   };
 };
 
+//stored plant profile
 export type FirestorePlant = {
   id: string;
   userId: string;

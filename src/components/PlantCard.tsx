@@ -26,7 +26,7 @@ export default function AddPlantCard({ onClose }: Props) {
   const [selectedType, setSelectedType] = useState<PlantType | null>(null);
   const [loadingTypes, setLoadingTypes] = useState(true);
 
-  /** 🔥 Load plantTypes from Firestore */
+  /** loading plantTypes*/
   useEffect(() => {
     const fetchTypes = async () => {
       const snap = await db.collection("plantTypes").get();
@@ -42,7 +42,6 @@ export default function AddPlantCard({ onClose }: Props) {
     fetchTypes();
   }, []);
 
-  /** 🌄 Pick image from gallery */
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -54,7 +53,6 @@ export default function AddPlantCard({ onClose }: Props) {
     }
   };
 
-  /** ✔ Save to Firebase */
   const handleSave = async () => {
     if (!selectedType) {
       alert("Please select a plant type.");
@@ -85,7 +83,6 @@ export default function AddPlantCard({ onClose }: Props) {
 
   return (
     <View style={styles.card}>
-      {/* ▼ Collapse Button */}
       <TouchableOpacity onPress={onClose} style={styles.collapseBtn}>
         <Text style={{ fontSize: 22, color: "#999" }}>▼</Text>
       </TouchableOpacity>

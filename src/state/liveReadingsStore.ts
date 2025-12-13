@@ -8,7 +8,6 @@ type Store = {
 
   clearReading: (plantId: string) => void;
 
-  /** Remove readings for all plants EXCEPT this one */
   clearOtherReadings: (activePlantId: string) => void;
 };
 

@@ -1,4 +1,3 @@
-// src/screens/MyPlantsScreen.tsx
 import { StackScreenProps } from "@react-navigation/stack";
 import React, { useEffect, useState } from "react";
 import {
@@ -15,6 +14,7 @@ import AddPlantCard from "../components/AddPlantCard";
 import { usePlantStore } from "../state/context";
 import { PlantType, RootStackParamList } from "../types";
 import { auth, db } from "../utils/firebaseConfig";
+import { formatTemperature } from "../utils/helpers";
 
 type Props = StackScreenProps<RootStackParamList, "MyPlants">;
 
@@ -23,7 +23,6 @@ export default function MyPlantsScreen({ route, navigation }: Props) {
   const { state, dispatch } = usePlantStore();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Subscribe to this user's plants in Firestore and store them in context
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
@@ -45,7 +44,6 @@ export default function MyPlantsScreen({ route, navigation }: Props) {
     return unsubscribe;
   }, [dispatch]);
 
-  // If we navigated here with a selectedPlant (from AddPlant flow), open the card
   useEffect(() => {
     if (route.params?.selectedPlant) {
       setIsExpanded(true);
@@ -69,10 +67,20 @@ export default function MyPlantsScreen({ route, navigation }: Props) {
     ]);
   };
 
+  //renders users stored plants in card form 
   const renderPlant = ({ item }: { item: any }) => {
-    const last = (item as any).last; // last reading, if your backend writes it
-    const moisture = last?.moisture ?? "--";
-    const tempC = last?.tempC ?? "--";
+    const last = (item as any).last || {};
+    const moistureVal =
+      last.soilMoisture !== undefined && last.soilMoisture !== null
+        ? Number(last.soilMoisture)
+        : NaN;
+
+    const moistureText = Number.isFinite(moistureVal) ? `${moistureVal}%` : "--%";
+
+    const tempText =
+      last.tempC !== undefined && last.tempC !== null
+        ? formatTemperature(Number(last.tempC), state.isFahrenheit)
+        : `--°${state.isFahrenheit ? "F" : "C"}`;
 
     return (
       <TouchableOpacity
@@ -80,10 +88,11 @@ export default function MyPlantsScreen({ route, navigation }: Props) {
         onPress={() => navigation.navigate("PlantDetail", { plantId: item.id })}
         onLongPress={() => handleDelete(item.id)}
       >
-        {/* top row: text + small thumbnail */}
         <View style={styles.topRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.plantName}>🌱 {item.customName}</Text>
+            <Text style={styles.plantName}>
+              🌱 {item.customName || item.name || "Plant"}
+            </Text>
             <Text style={styles.location}>
               📍 {(item as any).location || "Unknown location"}
             </Text>
@@ -98,10 +107,9 @@ export default function MyPlantsScreen({ route, navigation }: Props) {
           )}
         </View>
 
-        {/* stats */}
         <View style={styles.statRow}>
-          <Text style={styles.statText}>💧 {moisture}%</Text>
-          <Text style={styles.statText}>🌡 {tempC}°C</Text>
+          <Text style={styles.statText}>💧 {moistureText}</Text>
+          <Text style={styles.statText}>🌡 {tempText}</Text>
         </View>
       </TouchableOpacity>
     );
